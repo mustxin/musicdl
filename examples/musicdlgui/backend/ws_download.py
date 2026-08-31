@@ -66,6 +66,7 @@ async def ws_download(websocket: WebSocket):
                 for source, infos in by_source.items():
                     task_id = str(uuid.uuid4())
                     _active_downloads[task_id] = {"cancelled": False}
+                    await websocket.send_json({"type": "task_created", "task_id": task_id, "source": source})
 
                     def do_download(src, sis, tid):
                         client = musicdl.MusicClient(music_sources=[src])

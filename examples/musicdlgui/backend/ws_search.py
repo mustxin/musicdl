@@ -41,23 +41,20 @@ async def ws_search(websocket: WebSocket):
         await websocket.close()
         return
 
-    # Run musicdl search in a thread pool (it uses blocking requests)
+    # Run musicdl search per source in a thread pool (it uses blocking requests)
     loop = asyncio.get_event_loop()
 
-    def do_search():
-        client = musicdl.MusicClient(music_sources=sources)
-        return client.search(keyword=keyword)
+    for source in sources:
+        try:
+            client = musicdl.MusicClient(music_sources=[source])
+            search_results = await loop.run_in_executor(
+                _search_executor, lambda s=source, c=client: c.search(keyword=keyword)
+            )
+        except Exception as e:
+            await websocket.send_json({"type": "error", "source": source, "message": str(e)})
+            continue
 
-    try:
-        search_results = await loop.run_in_executor(_search_executor, do_search)
-    except Exception as e:
-        await websocket.send_json({"type": "error", "message": str(e)})
-        await websocket.close()
-        return
-
-    # Stream results source by source
-    for source, song_infos in search_results.items():
-        for song_info in song_infos:
+        for song_info in search_results.get(source, []):
             if not hasattr(song_info, 'with_valid_download_url') or not song_info.with_valid_download_url:
                 continue
             await websocket.send_json({

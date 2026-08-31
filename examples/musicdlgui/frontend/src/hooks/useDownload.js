@@ -2,7 +2,8 @@ import { useEffect } from 'react'
 import { useDownloadContext } from '../contexts/DownloadContext'
 import useWebSocket from './useWebSocket'
 
-const WS_URL = `ws://${window.location.hostname}:8765/ws/download`
+const WS_HOST = window.location.hostname || '127.0.0.1'
+const WS_URL = `ws://${WS_HOST}:8765/ws/download`
 
 /**
  * Hook that wires the DownloadContext to the WebSocket backend.
@@ -15,6 +16,9 @@ export default function useDownload() {
   useEffect(() => {
     if (!lastMessage) return
     switch (lastMessage.type) {
+      case 'task_created':
+        ctx.assignTaskId(lastMessage.task_id, lastMessage.source)
+        break
       case 'progress':
         ctx.updateProgress(
           lastMessage.task_id,

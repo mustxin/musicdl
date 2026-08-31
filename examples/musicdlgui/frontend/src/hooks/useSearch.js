@@ -2,7 +2,8 @@ import { useEffect } from 'react'
 import { useSearchContext } from '../contexts/SearchContext'
 import useWebSocket from './useWebSocket'
 
-const WS_URL = `ws://${window.location.hostname}:8765/ws/search`
+const WS_HOST = window.location.hostname || '127.0.0.1'
+const WS_URL = `ws://${WS_HOST}:8765/ws/search`
 
 /**
  * Hook that wires the SearchContext to the WebSocket backend.
