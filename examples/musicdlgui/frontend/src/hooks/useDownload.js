@@ -42,12 +42,10 @@ export default function useDownload() {
   const startDownload = (songInfos) => {
     ctx.addItems(songInfos)
     wsConnect()
-    setTimeout(() => {
-      sendMessage({
-        type: 'download',
-        song_infos: songInfos,
-      })
-    }, 200)
+    sendMessage({
+      type: 'download',
+      song_infos: songInfos,
+    })
   }
 
   const cancelDownload = (taskId) => {

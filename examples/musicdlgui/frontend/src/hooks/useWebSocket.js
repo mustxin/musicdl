@@ -15,17 +15,28 @@ const WS_READY_STATES = {
 export default function useWebSocket(url) {
   const wsRef = useRef(null)
   const reconnectTimer = useRef(null)
+  const pendingMessages = useRef([])
   const [lastMessage, setLastMessage] = useState(null)
   const [readyState, setReadyState] = useState(WS_READY_STATES.CLOSED)
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return
+    if (wsRef.current?.readyState === WebSocket.CONNECTING) return
 
+    pendingMessages.current = []
     const ws = new WebSocket(url)
     wsRef.current = ws
     setReadyState(WS_READY_STATES.CONNECTING)
 
-    ws.onopen = () => setReadyState(WS_READY_STATES.OPEN)
+    ws.onopen = () => {
+      setReadyState(WS_READY_STATES.OPEN)
+      // Flush any queued messages
+      const queued = pendingMessages.current
+      pendingMessages.current = []
+      for (const msg of queued) {
+        ws.send(JSON.stringify(msg))
+      }
+    }
 
     ws.onmessage = (event) => {
       try {
@@ -55,6 +66,9 @@ export default function useWebSocket(url) {
   const sendMessage = useCallback((msg) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(msg))
+    } else {
+      // Buffer message — will be flushed when connection opens
+      pendingMessages.current.push(msg)
     }
   }, [])
 
