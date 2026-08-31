@@ -6,6 +6,7 @@ import uvicorn
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from ws_search import ws_search as _ws_search_handler
+from ws_download import ws_download as _ws_download_handler
 
 app = FastAPI(title="musicdl-gui-backend")
 
@@ -30,10 +31,7 @@ async def ws_search(websocket: WebSocket):
 
 @app.websocket("/ws/download")
 async def ws_download(websocket: WebSocket):
-    await websocket.accept()
-    # Stub: will be implemented in Task 3
-    await websocket.send_json({"type": "done"})
-    await websocket.close()
+    await _ws_download_handler(websocket)
 
 
 if __name__ == "__main__":
