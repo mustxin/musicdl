@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useCallback, useRef } from 'react'
 import { useDownloadContext } from '../contexts/DownloadContext'
 import useWebSocket from './useWebSocket'
 
@@ -10,34 +10,37 @@ const WS_URL = `ws://${WS_HOST}:8765/ws/download`
  */
 export default function useDownload() {
   const ctx = useDownloadContext()
-  const { sendMessage, lastMessage, connect: wsConnect } = useWebSocket(WS_URL)
+  const ctxRef = useRef(ctx)
+  ctxRef.current = ctx
 
-  // Process incoming messages
-  useEffect(() => {
-    if (!lastMessage) return
-    switch (lastMessage.type) {
+  // Process incoming messages via callback (avoids React 18 batching issues)
+  const handleMessage = useCallback((data) => {
+    const c = ctxRef.current
+    switch (data.type) {
       case 'task_created':
-        ctx.assignTaskId(lastMessage.task_id, lastMessage.source)
+        c.assignTaskId(data.task_id, data.source)
         break
       case 'progress':
-        ctx.updateProgress(
-          lastMessage.task_id,
-          lastMessage.song_name,
-          lastMessage.percent,
-          lastMessage.speed
+        c.updateProgress(
+          data.task_id,
+          data.song_name,
+          data.percent,
+          data.speed
         )
         break
       case 'complete':
-        ctx.markComplete(lastMessage.task_id)
+        c.markComplete(data.task_id)
         break
       case 'error':
-        ctx.markError(lastMessage.task_id || '', lastMessage.message)
+        c.markError(data.task_id || '', data.message)
         break
       case 'cancelled':
-        ctx.markCancelled(lastMessage.task_id)
+        c.markCancelled(data.task_id)
         break
     }
-  }, [lastMessage])
+  }, [])
+
+  const { sendMessage, connect: wsConnect } = useWebSocket(WS_URL, handleMessage)
 
   const startDownload = (songInfos) => {
     ctx.addItems(songInfos)

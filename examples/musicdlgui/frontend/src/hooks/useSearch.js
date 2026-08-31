@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useSearchContext } from '../contexts/SearchContext'
 import useWebSocket from './useWebSocket'
 
@@ -11,34 +11,36 @@ const WS_URL = `ws://${WS_HOST}:8765/ws/search`
  */
 export default function useSearch() {
   const ctx = useSearchContext()
-  const { sendMessage, lastMessage, readyState, connect: wsConnect } = useWebSocket(WS_URL)
-  const activeSources = Object.entries(ctx.sources)
-    .filter(([, v]) => v.enabled)
-    .map(([k]) => k)
+  const ctxRef = useRef(ctx)
+  ctxRef.current = ctx
 
-  // Process incoming WebSocket messages
-  useEffect(() => {
-    if (!lastMessage) return
-    switch (lastMessage.type) {
+  // Process incoming WebSocket messages via callback (avoids React 18 batching issues)
+  const handleMessage = useCallback((data) => {
+    const c = ctxRef.current
+    switch (data.type) {
       case 'result':
-        ctx.appendResult(lastMessage.song_info)
+        c.appendResult(data.song_info)
         break
       case 'source_done':
         break
       case 'search_done':
-        ctx.setStatus('done')
+        c.setStatus('done')
         break
       case 'error':
-        console.error('Search error:', lastMessage.message)
-        ctx.setStatus('done')
+        console.error('Search error:', data.message)
+        c.setStatus('done')
         break
     }
-  }, [lastMessage])
+  }, [])
+
+  const { sendMessage, readyState, connect: wsConnect } = useWebSocket(WS_URL, handleMessage)
+  const activeSources = Object.entries(ctx.sources)
+    .filter(([, v]) => v.enabled)
+    .map(([k]) => k)
 
   // If connection fails while searching, stop spinner
   useEffect(() => {
     if (readyState === 3 && ctx.status === 'searching') {
-      // CLOSED — connection dropped before search completed
       ctx.setStatus('done')
     }
   }, [readyState, ctx.status])

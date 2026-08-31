@@ -12,11 +12,12 @@ const WS_READY_STATES = {
  * @param {string} url - WebSocket endpoint URL
  * @returns {{ sendMessage: Function, lastMessage: object|null, readyState: number, connect: Function, disconnect: Function }}
  */
-export default function useWebSocket(url) {
+export default function useWebSocket(url, onMessage) {
   const wsRef = useRef(null)
   const reconnectTimer = useRef(null)
   const pendingMessages = useRef([])
-  const [lastMessage, setLastMessage] = useState(null)
+  const onMessageRef = useRef(onMessage)
+  onMessageRef.current = onMessage
   const [readyState, setReadyState] = useState(WS_READY_STATES.CLOSED)
 
   const connect = useCallback(() => {
@@ -41,9 +42,11 @@ export default function useWebSocket(url) {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
-        setLastMessage(data)
+        if (onMessageRef.current) {
+          onMessageRef.current(data)
+        }
       } catch {
-        setLastMessage({ type: 'raw', data: event.data })
+        // ignore parse errors
       }
     }
 
@@ -79,5 +82,5 @@ export default function useWebSocket(url) {
     }
   }, [])
 
-  return { sendMessage, lastMessage, readyState, connect, disconnect }
+  return { sendMessage, readyState, connect, disconnect }
 }
