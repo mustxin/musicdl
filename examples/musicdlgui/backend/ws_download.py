@@ -13,6 +13,10 @@ from musicdl import musicdl
 from musicdl.modules import SongInfo
 
 
+# Project root is 3 levels up from this file: backend/ -> musicdlgui/ -> examples/ -> repo root
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+_DOWNLOAD_DIR = os.path.join(_PROJECT_ROOT, "musicdl_outputs")
+
 _download_executor = ThreadPoolExecutor(max_workers=5)
 _active_downloads: dict[str, dict] = {}
 
@@ -70,7 +74,10 @@ async def ws_download(websocket: WebSocket):
                     await websocket.send_json({"type": "task_created", "task_id": task_id, "source": source})
 
                     def do_download(src, sis, tid):
-                        client = musicdl.MusicClient(music_sources=[src])
+                        client = musicdl.MusicClient(
+                            music_sources=[src],
+                            init_music_clients_cfg={src: {"work_dir": _DOWNLOAD_DIR}},
+                        )
                         total = len(sis)
                         for i, si in enumerate(sis):
                             if _active_downloads.get(tid, {}).get("cancelled"):

@@ -21,7 +21,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DOWNLOAD_DIR = os.path.abspath("musicdl_outputs")
+# Project root is 3 levels up from this file: backend/ -> musicdlgui/ -> examples/ -> repo root
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+DOWNLOAD_DIR = os.path.join(PROJECT_ROOT, "musicdl_outputs")
 
 
 @app.get("/health")

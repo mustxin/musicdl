@@ -2,6 +2,7 @@
 Search WebSocket handler.
 Streams search results from musicdl to the frontend in real time.
 """
+import os
 import json
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
@@ -13,6 +14,10 @@ DEFAULT_SOURCES = [
     "MiguMusicClient", "NeteaseMusicClient", "QQMusicClient",
     "KuwoMusicClient", "QianqianMusicClient",
 ]
+
+# Project root is 3 levels up from this file: backend/ -> musicdlgui/ -> examples/ -> repo root
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+_DOWNLOAD_DIR = os.path.join(_PROJECT_ROOT, "musicdl_outputs")
 
 _search_executor = ThreadPoolExecutor(max_workers=4)
 
@@ -41,12 +46,14 @@ async def ws_search(websocket: WebSocket):
         await websocket.close()
         return
 
-    # Run musicdl search per source in a thread pool (it uses blocking requests)
     loop = asyncio.get_event_loop()
 
     for source in sources:
         try:
-            client = musicdl.MusicClient(music_sources=[source])
+            client = musicdl.MusicClient(
+                music_sources=[source],
+                init_music_clients_cfg={source: {"work_dir": _DOWNLOAD_DIR}},
+            )
             search_results = await loop.run_in_executor(
                 _search_executor, lambda s=source, c=client: c.search(keyword=keyword)
             )
