@@ -1,3 +1,12 @@
+# ============================================================================
+# DEPRECATED: This PyQt5-based GUI has been replaced by a modern Electron +
+# FastAPI + React application. See the `electron/`, `backend/`, and `frontend/`
+# directories for the new implementation.
+#
+# This file is preserved for reference. To run the new GUI:
+#   cd examples/musicdlgui/electron && npx electron main.js --dev
+# ============================================================================
+
 '''
 Function:
     Implementation of MusicdlGUI
