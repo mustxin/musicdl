@@ -5,6 +5,7 @@ Provides WebSocket endpoints for search and download.
 import uvicorn
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
+from ws_search import ws_search as _ws_search_handler
 
 app = FastAPI(title="musicdl-gui-backend")
 
@@ -24,10 +25,7 @@ async def health():
 
 @app.websocket("/ws/search")
 async def ws_search(websocket: WebSocket):
-    await websocket.accept()
-    # Stub: will be implemented in Task 2
-    await websocket.send_json({"type": "search_done"})
-    await websocket.close()
+    await _ws_search_handler(websocket)
 
 
 @app.websocket("/ws/download")

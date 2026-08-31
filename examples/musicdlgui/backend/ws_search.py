@@ -1,0 +1,83 @@
+"""
+Search WebSocket handler.
+Streams search results from musicdl to the frontend in real time.
+"""
+import json
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+from fastapi import WebSocket
+from musicdl import musicdl
+
+
+DEFAULT_SOURCES = [
+    "MiguMusicClient", "NeteaseMusicClient", "QQMusicClient",
+    "KuwoMusicClient", "QianqianMusicClient",
+]
+
+_search_executor = ThreadPoolExecutor(max_workers=4)
+
+
+async def ws_search(websocket: WebSocket):
+    await websocket.accept()
+
+    try:
+        raw = await websocket.receive_text()
+        msg = json.loads(raw)
+    except Exception:
+        await websocket.send_json({"type": "error", "message": "invalid message"})
+        await websocket.close()
+        return
+
+    if msg.get("type") != "search":
+        await websocket.send_json({"type": "error", "message": "expected type=search"})
+        await websocket.close()
+        return
+
+    keyword = msg.get("keyword", "").strip()
+    sources = msg.get("sources") or DEFAULT_SOURCES
+
+    if not keyword:
+        await websocket.send_json({"type": "error", "message": "keyword is required"})
+        await websocket.close()
+        return
+
+    # Run musicdl search in a thread pool (it uses blocking requests)
+    loop = asyncio.get_event_loop()
+
+    def do_search():
+        client = musicdl.MusicClient(music_sources=sources)
+        return client.search(keyword=keyword)
+
+    try:
+        search_results = await loop.run_in_executor(_search_executor, do_search)
+    except Exception as e:
+        await websocket.send_json({"type": "error", "message": str(e)})
+        await websocket.close()
+        return
+
+    # Stream results source by source
+    for source, song_infos in search_results.items():
+        for song_info in song_infos:
+            if not hasattr(song_info, 'with_valid_download_url') or not song_info.with_valid_download_url:
+                continue
+            await websocket.send_json({
+                "type": "result",
+                "song_info": {
+                    "source": song_info.source,
+                    "song_name": song_info.song_name,
+                    "singers": song_info.singers,
+                    "album": song_info.album or "",
+                    "ext": song_info.ext or "",
+                    "file_size": song_info.file_size or "",
+                    "duration": song_info.duration or "",
+                    "cover_url": song_info.cover_url or "",
+                    "download_url": song_info.download_url if isinstance(song_info.download_url, str) else "",
+                    "bitrate": song_info.bitrate or 0,
+                    "duration_s": song_info.duration_s or 0,
+                    "raw_data": song_info.raw_data if isinstance(song_info.raw_data, dict) else {},
+                }
+            })
+        await websocket.send_json({"type": "source_done", "source": source})
+
+    await websocket.send_json({"type": "search_done"})
+    await websocket.close()
