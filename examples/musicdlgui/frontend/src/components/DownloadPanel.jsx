@@ -6,14 +6,23 @@ export default function DownloadPanel() {
 
   const hasCompleted = items.some((i) => i.status === 'complete' || i.status === 'cancelled')
 
+  const openDownloadsFolder = async () => {
+    try {
+      const host = window.location.hostname || '127.0.0.1'
+      await fetch(`http://${host}:8765/downloads/open`)
+    } catch (err) {
+      console.error('Failed to open downloads folder:', err)
+    }
+  }
+
   return (
     <div className="border-t border-neutral-800 bg-neutral-900/95 backdrop-blur">
       {/* Header */}
-      <button
-        onClick={togglePanel}
-        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-neutral-800/30 transition-colors"
-      >
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between px-4 py-2.5">
+        <button
+          onClick={togglePanel}
+          className="flex items-center gap-2 hover:text-neutral-200 transition-colors"
+        >
           <svg
             className={`w-4 h-4 text-neutral-400 transition-transform ${panelExpanded ? 'rotate-180' : ''}`}
             fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
@@ -26,16 +35,28 @@ export default function DownloadPanel() {
           {items.length > 0 && (
             <span className="text-xs text-neutral-500">({items.length})</span>
           )}
-        </div>
-        {hasCompleted && (
+        </button>
+        <div className="flex items-center gap-3">
           <button
-            onClick={(e) => { e.stopPropagation(); clearCompleted() }}
-            className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+            onClick={openDownloadsFolder}
+            className="text-xs text-neutral-500 hover:text-indigo-400 transition-colors flex items-center gap-1"
+            title="Open downloads folder"
           >
-            Clear completed
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+            </svg>
+            Open folder
           </button>
-        )}
-      </button>
+          {hasCompleted && (
+            <button
+              onClick={(e) => { e.stopPropagation(); clearCompleted() }}
+              className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+            >
+              Clear completed
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* List */}
       {panelExpanded && (
