@@ -1,6 +1,22 @@
+const SOURCE_COLORS = {
+  MiguMusicClient:    'bg-blue-500/10 text-blue-400 border-blue-500/30',
+  NeteaseMusicClient: 'bg-red-500/10 text-red-400 border-red-500/30',
+  QQMusicClient:      'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+  KuwoMusicClient:    'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
+  QianqianMusicClient:'bg-purple-500/10 text-purple-400 border-purple-500/30',
+  KugouMusicClient:   'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
+}
+
+const SOURCE_SHORT = {
+  MiguMusicClient: 'Migu', NeteaseMusicClient: 'Netease', QQMusicClient: 'QQ',
+  KuwoMusicClient: 'Kuwo', QianqianMusicClient: 'Qianqian', KugouMusicClient: 'Kugou',
+}
+
 export default function ResultCard({ songInfo, onDownload }) {
   const ext = (songInfo.ext || 'mp3').toUpperCase()
   const isLossless = ['FLAC', 'WAV', 'ALAC', 'APE', 'DSF', 'DFF'].includes(ext)
+  const sourceColor = SOURCE_COLORS[songInfo.source] || 'bg-neutral-700/50 text-neutral-400 border-neutral-600/30'
+  const sourceShort = SOURCE_SHORT[songInfo.source] || (songInfo.source || '').replace('MusicClient', '')
 
   return (
     <div className="group bg-neutral-800/50 hover:bg-neutral-800 rounded-xl border border-neutral-700/50 hover:border-neutral-600/50 transition-all duration-200 overflow-hidden">
@@ -40,6 +56,9 @@ export default function ResultCard({ songInfo, onDownload }) {
           {songInfo.singers || 'Unknown Artist'}
         </p>
         <div className="flex items-center gap-2 mt-2">
+          <span className={`text-xs px-1.5 py-0.5 rounded font-medium border ${sourceColor}`}>
+            {sourceShort}
+          </span>
           <span className="text-xs text-neutral-500">{songInfo.duration || '--:--'}</span>
           <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
             isLossless ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' :

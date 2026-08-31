@@ -15,6 +15,7 @@ const initialState = {
   status: 'idle',
   results: [],
   sources: { ...DEFAULT_SOURCES },
+  sourceStatus: {},  // { 'MiguMusicClient': 'pending'|'searching'|'done'|'error' }
 }
 
 function searchReducer(state, action) {
@@ -27,6 +28,21 @@ function searchReducer(state, action) {
       return { ...state, results: [...state.results, action.payload] }
     case 'CLEAR_RESULTS':
       return { ...state, results: [] }
+    case 'SET_SOURCE_STATUS':
+      return {
+        ...state,
+        sourceStatus: {
+          ...state.sourceStatus,
+          [action.payload.source]: action.payload.status,
+        },
+      }
+    case 'INIT_SOURCE_STATUS': {
+      const statuses = {}
+      for (const s of action.payload) {
+        statuses[s] = 'searching'
+      }
+      return { ...state, sourceStatus: statuses }
+    }
     case 'TOGGLE_SOURCE': {
       const name = action.payload
       return {
@@ -54,6 +70,8 @@ export function SearchProvider({ children }) {
   const setStatus = useCallback((s) => dispatch({ type: 'SET_STATUS', payload: s }), [])
   const appendResult = useCallback((r) => dispatch({ type: 'APPEND_RESULT', payload: r }), [])
   const clearResults = useCallback(() => dispatch({ type: 'CLEAR_RESULTS' }), [])
+  const setSourceStatus = useCallback((source, status) => dispatch({ type: 'SET_SOURCE_STATUS', payload: { source, status } }), [])
+  const initSourceStatus = useCallback((sources) => dispatch({ type: 'INIT_SOURCE_STATUS', payload: sources }), [])
   const toggleSource = useCallback((name) => dispatch({ type: 'TOGGLE_SOURCE', payload: name }), [])
   const resetSearch = useCallback(() => dispatch({ type: 'RESET' }), [])
 
@@ -63,6 +81,8 @@ export function SearchProvider({ children }) {
     setStatus,
     appendResult,
     clearResults,
+    setSourceStatus,
+    initSourceStatus,
     toggleSource,
     resetSearch,
   }

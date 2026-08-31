@@ -32,6 +32,7 @@ def _build_song_info(data: dict) -> SongInfo:
         bitrate=data.get("bitrate", 0),
         duration_s=data.get("duration_s", 0),
         raw_data=data.get("raw_data", {}),
+        download_url_status={"ok": True},  # URL was pre-validated by search step
     )
 
 

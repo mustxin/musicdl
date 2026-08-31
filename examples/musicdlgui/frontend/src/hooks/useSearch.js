@@ -22,13 +22,16 @@ export default function useSearch() {
         c.appendResult(data.song_info)
         break
       case 'source_done':
+        c.setSourceStatus(data.source, 'done')
         break
       case 'search_done':
         c.setStatus('done')
         break
       case 'error':
         console.error('Search error:', data.message)
-        c.setStatus('done')
+        if (data.source) {
+          c.setSourceStatus(data.source, 'error')
+        }
         break
     }
   }, [])
@@ -48,6 +51,7 @@ export default function useSearch() {
   const startSearch = () => {
     if (!ctx.keyword.trim()) return
     ctx.clearResults()
+    ctx.initSourceStatus(activeSources)
     ctx.setStatus('searching')
     wsConnect()
     sendMessage({
