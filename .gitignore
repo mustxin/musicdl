@@ -107,3 +107,6 @@ venv.bak/
 node_modules/
 
 musicdl_outputs/
+
+# GUI runtime state
+examples/musicdlgui/backend/.search_history.json
