@@ -3,13 +3,31 @@ import useSearch from '../hooks/useSearch'
 import SearchHistory from './SearchHistory'
 
 export default function SearchBar() {
-  const { keyword, setKeyword, status, sources, startSearch } = useSearch()
+  const { keyword, setKeyword, status, sources, sourceStatus, startSearch } = useSearch()
   const [showHistory, setShowHistory] = useState(false)
+  const [elapsed, setElapsed] = useState(0)
+  const elapsedRef = useRef(null)
   const containerRef = useRef(null)
 
   const activeSourceNames = Object.entries(sources)
     .filter(([, v]) => v.enabled)
-    .map(([k, v]) => v.short || k)
+    .map(([k, v]) => ({ name: k, short: v.short }))
+
+  const totalSources = activeSourceNames.length
+  const doneSources = activeSourceNames.filter(s => sourceStatus[s.name] === 'done').length
+  const isSearching = status === 'searching'
+  const isComplete = status === 'done'
+
+  // Elapsed time counter
+  useEffect(() => {
+    if (isSearching) {
+      setElapsed(0)
+      elapsedRef.current = setInterval(() => setElapsed(e => e + 1), 1000)
+    } else {
+      clearInterval(elapsedRef.current)
+    }
+    return () => clearInterval(elapsedRef.current)
+  }, [isSearching])
 
   // Close history on click outside
   useEffect(() => {
@@ -42,12 +60,14 @@ export default function SearchBar() {
   }
 
   const handleFocus = () => {
-    if (!keyword.trim()) {
-      setShowHistory(true)
-    }
+    if (!keyword.trim()) setShowHistory(true)
   }
 
-  const isSearching = status === 'searching'
+  const formatElapsed = (s) => {
+    const m = Math.floor(s / 60)
+    const sec = s % 60
+    return m > 0 ? `${m}m ${sec}s` : `${sec}s`
+  }
 
   return (
     <div className="w-full" ref={containerRef}>
@@ -73,11 +93,7 @@ export default function SearchBar() {
             className="w-full pl-10 pr-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-sm text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-colors"
             disabled={isSearching}
           />
-          {/* History dropdown */}
-          <SearchHistory
-            visible={showHistory}
-            onSelect={handleHistorySelect}
-          />
+          <SearchHistory visible={showHistory} onSelect={handleHistorySelect} />
         </div>
         <button
           onClick={() => { setShowHistory(false); startSearch() }}
@@ -98,17 +114,64 @@ export default function SearchBar() {
         </button>
       </div>
 
-      {/* Active source tags */}
-      <div className="flex gap-2 mt-3 flex-wrap">
-        {activeSourceNames.map((name) => (
-          <span
-            key={name}
-            className="px-2.5 py-0.5 text-xs rounded-full bg-neutral-800 text-neutral-400 border border-neutral-700"
-          >
-            {name}
-          </span>
-        ))}
-      </div>
+      {/* Source tags + search progress (merged row) */}
+      {(isSearching || isComplete) && (
+        <div className="mt-3 p-3 rounded-xl bg-neutral-900/50 border border-neutral-800">
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Per-source badges */}
+            {activeSourceNames.map(({ name, short }) => {
+              const s = sourceStatus[name]
+              const isDone = s === 'done'
+              const isErr = s === 'error'
+              return (
+                <span
+                  key={name}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${
+                    isDone
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                      : isErr
+                      ? 'bg-red-500/10 text-red-400 border border-red-500/30'
+                      : 'bg-neutral-700 text-neutral-400'
+                  }`}
+                >
+                  {!isDone && !isErr && (
+                    <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  )}
+                  {isDone && <span>✓</span>}
+                  {isErr && <span>✗</span>}
+                  {short}
+                </span>
+              )
+            })}
+
+            {/* Spacer */}
+            <div className="flex-1" />
+
+            {/* Status text */}
+            {isSearching ? (
+              <span className="text-xs text-neutral-500">
+                {doneSources}/{totalSources} done · {formatElapsed(elapsed)} elapsed
+              </span>
+            ) : (
+              <span className="text-xs text-emerald-400">
+                Complete · {doneSources}/{totalSources} sources · {formatElapsed(elapsed)}
+              </span>
+            )}
+          </div>
+
+          {/* User-friendly hint */}
+          {isSearching && (
+            <p className="text-xs text-neutral-600 mt-2">
+              {doneSources > 0
+                ? `资源解析中，已找到 ${doneSources} 个源的结果，其他源请耐心等待...`
+                : '资源解析中，请耐心等待...'}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   )
 }
