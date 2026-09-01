@@ -1,10 +1,10 @@
 import useSearch from '../hooks/useSearch'
-import useDownload from '../hooks/useDownload'
+import { useDownloadContext } from '../contexts/DownloadContext'
 import ResultCard from './ResultCard'
 
 export default function ResultGrid() {
   const { results, status } = useSearch()
-  const { startDownload } = useDownload()
+  const { startDownload } = useDownloadContext()
 
   const handleDownload = (songInfo) => {
     startDownload([songInfo])

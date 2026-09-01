@@ -1,8 +1,8 @@
-import useDownload from '../hooks/useDownload'
+import { useDownloadContext } from '../contexts/DownloadContext'
 import DownloadItem from './DownloadItem'
 
 export default function DownloadPanel() {
-  const { items, cancelDownload, clearCompleted } = useDownload()
+  const { items, cancelDownload, clearCompleted } = useDownloadContext()
 
   const hasCompleted = items.some((i) => i.status === 'complete' || i.status === 'cancelled')
 

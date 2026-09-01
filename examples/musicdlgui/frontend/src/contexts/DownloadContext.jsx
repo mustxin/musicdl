@@ -1,6 +1,10 @@
 import { createContext, useContext, useReducer, useCallback } from 'react'
+import useWebSocket from '../hooks/useWebSocket'
 
 const DownloadContext = createContext(null)
+
+const WS_HOST = window.location.hostname || '127.0.0.1'
+const WS_URL = `ws://${WS_HOST}:8765/ws/download`
 
 const initialState = {
   items: [],
@@ -76,12 +80,45 @@ function downloadReducer(state, action) {
 export function DownloadProvider({ children }) {
   const [state, dispatch] = useReducer(downloadReducer, initialState)
 
-  const addItems = useCallback((taskId, songInfos) => dispatch({ type: 'ADD_ITEMS', payload: { taskId, songInfos } }), [])
-  const updateProgress = useCallback((taskId, songName, percent, speed) =>
-    dispatch({ type: 'UPDATE_PROGRESS', payload: { task_id: taskId, song_name: songName, percent, speed } }), [])
-  const markComplete = useCallback((taskId) => dispatch({ type: 'MARK_COMPLETE', payload: { task_id: taskId } }), [])
-  const markError = useCallback((taskId, message) => dispatch({ type: 'MARK_ERROR', payload: { task_id: taskId, message } }), [])
-  const markCancelled = useCallback((taskId) => dispatch({ type: 'MARK_CANCELLED', payload: { task_id: taskId } }), [])
+  // The download WebSocket lives HERE in the provider (never unmounts).
+  // Previously it lived in useDownload() called from ResultGrid — which
+  // unmounts when the user switches to the Downloads page, killing the
+  // connection mid-download and freezing progress at 0%.
+  const handleMessage = useCallback((data) => {
+    switch (data.type) {
+      case 'progress':
+        dispatch({ type: 'UPDATE_PROGRESS', payload: { task_id: data.task_id, song_name: data.song_name, percent: data.percent, speed: data.speed } })
+        break
+      case 'complete':
+        dispatch({ type: 'MARK_COMPLETE', payload: { task_id: data.task_id } })
+        break
+      case 'error':
+        dispatch({ type: 'MARK_ERROR', payload: { task_id: data.task_id || '', message: data.message } })
+        break
+      case 'cancelled':
+        dispatch({ type: 'MARK_CANCELLED', payload: { task_id: data.task_id } })
+        break
+    }
+  }, [])
+
+  const { sendMessage, connect: wsConnect } = useWebSocket(WS_URL, handleMessage)
+
+  const startDownload = useCallback((songInfos) => {
+    const taskId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    dispatch({ type: 'ADD_ITEMS', payload: { taskId, songInfos } })
+    wsConnect()
+    sendMessage({
+      type: 'download',
+      task_id: taskId,
+      song_infos: songInfos,
+    })
+  }, [wsConnect, sendMessage])
+
+  const cancelDownload = useCallback((taskId) => {
+    sendMessage({ type: 'cancel', task_id: taskId })
+    dispatch({ type: 'MARK_CANCELLED', payload: { task_id: taskId } })
+  }, [sendMessage])
+
   const clearCompleted = useCallback(() => dispatch({ type: 'CLEAR_COMPLETED' }), [])
   const togglePanel = useCallback(() => dispatch({ type: 'TOGGLE_PANEL' }), [])
 
@@ -89,11 +126,8 @@ export function DownloadProvider({ children }) {
 
   const value = {
     ...state,
-    addItems,
-    updateProgress,
-    markComplete,
-    markError,
-    markCancelled,
+    startDownload,
+    cancelDownload,
     clearCompleted,
     togglePanel,
     activeCount,
