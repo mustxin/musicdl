@@ -17,9 +17,6 @@ export default function useDownload() {
   const handleMessage = useCallback((data) => {
     const c = ctxRef.current
     switch (data.type) {
-      case 'task_created':
-        c.assignTaskId(data.task_id, data.source)
-        break
       case 'progress':
         c.updateProgress(
           data.task_id,
@@ -43,10 +40,12 @@ export default function useDownload() {
   const { sendMessage, connect: wsConnect } = useWebSocket(WS_URL, handleMessage)
 
   const startDownload = (songInfos) => {
-    ctx.addItems(songInfos)
+    const taskId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    ctx.addItems(taskId, songInfos)
     wsConnect()
     sendMessage({
       type: 'download',
+      task_id: taskId,
       song_infos: songInfos,
     })
   }

@@ -82,6 +82,7 @@ async def ws_search(websocket: WebSocket):
                     "download_url": song_info.download_url if isinstance(song_info.download_url, str) else "",
                     "bitrate": song_info.bitrate or 0,
                     "duration_s": song_info.duration_s or 0,
+                    "work_dir": getattr(song_info, 'work_dir', ''),
                     "raw_data": song_info.raw_data if isinstance(song_info.raw_data, dict) else {},
                 }
             })

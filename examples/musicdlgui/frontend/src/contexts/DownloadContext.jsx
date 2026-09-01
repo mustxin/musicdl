@@ -10,25 +10,15 @@ const initialState = {
 function downloadReducer(state, action) {
   switch (action.type) {
     case 'ADD_ITEMS': {
-      const newItems = action.payload.map((si, i) => ({
-        id: `${Date.now()}-${i}`,
+      const { taskId, songInfos } = action.payload
+      const newItems = songInfos.map((si, i) => ({
+        id: `${taskId}-${i}`,
         songInfo: si,
         percent: 0,
         speed: '',
         status: 'queued',
       }))
       return { ...state, items: [...state.items, ...newItems], panelExpanded: true }
-    }
-    case 'ASSIGN_TASK_ID': {
-      const { task_id, source } = action.payload
-      return {
-        ...state,
-        items: state.items.map((item) =>
-          item.status === 'queued' && (!source || item.songInfo?.source === source)
-            ? { ...item, id: task_id }
-            : item
-        ),
-      }
     }
     case 'UPDATE_PROGRESS': {
       return {
@@ -86,9 +76,7 @@ function downloadReducer(state, action) {
 export function DownloadProvider({ children }) {
   const [state, dispatch] = useReducer(downloadReducer, initialState)
 
-  const addItems = useCallback((songInfos) => dispatch({ type: 'ADD_ITEMS', payload: songInfos }), [])
-  const assignTaskId = useCallback((taskId, source) =>
-    dispatch({ type: 'ASSIGN_TASK_ID', payload: { task_id: taskId, source } }), [])
+  const addItems = useCallback((taskId, songInfos) => dispatch({ type: 'ADD_ITEMS', payload: { taskId, songInfos } }), [])
   const updateProgress = useCallback((taskId, songName, percent, speed) =>
     dispatch({ type: 'UPDATE_PROGRESS', payload: { task_id: taskId, song_name: songName, percent, speed } }), [])
   const markComplete = useCallback((taskId) => dispatch({ type: 'MARK_COMPLETE', payload: { task_id: taskId } }), [])
@@ -102,7 +90,6 @@ export function DownloadProvider({ children }) {
   const value = {
     ...state,
     addItems,
-    assignTaskId,
     updateProgress,
     markComplete,
     markError,
