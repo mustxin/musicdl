@@ -1,6 +1,7 @@
 import { useCallback, useState, useEffect, useRef } from 'react'
 import useSearch from '../hooks/useSearch'
 import SearchHistory from './SearchHistory'
+import SourceDropdown from './SourceDropdown'
 
 export default function SearchBar() {
   const { keyword, setKeyword, status, sources, sourceStatus, startSearch } = useSearch()
@@ -95,6 +96,8 @@ export default function SearchBar() {
           />
           <SearchHistory visible={showHistory} onSelect={handleHistorySelect} />
         </div>
+        {/* Sources dropdown */}
+        <SourceDropdown />
         <button
           onClick={() => { setShowHistory(false); startSearch() }}
           disabled={isSearching || !keyword.trim()}

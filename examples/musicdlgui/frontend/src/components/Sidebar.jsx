@@ -1,4 +1,3 @@
-import SourceDropdown from './SourceDropdown'
 import DownloadQueueBadge from './DownloadQueueBadge'
 
 export default function Sidebar({ activePage, onPageChange }) {
@@ -25,11 +24,6 @@ export default function Sidebar({ activePage, onPageChange }) {
         </svg>
         Search
       </button>
-
-      {/* Sources dropdown */}
-      <div className="mt-1">
-        <SourceDropdown />
-      </div>
 
       {/* Spacer */}
       <div className="flex-1" />
