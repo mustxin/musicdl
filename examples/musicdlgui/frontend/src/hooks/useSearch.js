@@ -48,15 +48,19 @@ export default function useSearch() {
     }
   }, [readyState, ctx.status])
 
-  const startSearch = () => {
-    if (!ctx.keyword.trim()) return
+  const startSearch = (historyKeyword) => {
+    const kw = historyKeyword || ctx.keyword
+    if (!kw.trim()) return
+    if (!historyKeyword) {
+      ctx.setKeyword(kw)
+    }
     ctx.clearResults()
     ctx.initSourceStatus(activeSources)
     ctx.setStatus('searching')
     wsConnect()
     sendMessage({
       type: 'search',
-      keyword: ctx.keyword,
+      keyword: kw,
       sources: activeSources,
     })
   }

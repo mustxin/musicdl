@@ -10,6 +10,7 @@ from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from ws_search import ws_search as _ws_search_handler
 from ws_download import ws_download as _ws_download_handler
+from history import read_history, write_history
 
 app = FastAPI(title="musicdl-gui-backend")
 
@@ -29,6 +30,19 @@ DOWNLOAD_DIR = os.path.join(PROJECT_ROOT, "musicdl_outputs")
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/history")
+async def get_history():
+    """Return recent search history."""
+    return read_history()
+
+
+@app.delete("/history")
+async def clear_history():
+    """Clear all search history."""
+    write_history([])
+    return {"ok": True}
 
 
 @app.get("/downloads/path")

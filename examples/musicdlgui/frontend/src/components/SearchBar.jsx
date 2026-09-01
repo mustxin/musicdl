@@ -1,26 +1,56 @@
-import { useCallback } from 'react'
+import { useCallback, useState, useEffect, useRef } from 'react'
 import useSearch from '../hooks/useSearch'
+import SearchHistory from './SearchHistory'
 
 export default function SearchBar() {
   const { keyword, setKeyword, status, sources, startSearch } = useSearch()
+  const [showHistory, setShowHistory] = useState(false)
+  const containerRef = useRef(null)
 
   const activeSourceNames = Object.entries(sources)
     .filter(([, v]) => v.enabled)
     .map(([k, v]) => v.short || k)
 
+  // Close history on click outside
+  useEffect(() => {
+    const handler = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setShowHistory(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
   const handleKeyDown = useCallback(
     (e) => {
-      if (e.key === 'Enter' && status !== 'searching') {
+      if (e.key === 'Enter' && status !== 'searching' && keyword.trim()) {
+        setShowHistory(false)
         startSearch()
       }
+      if (e.key === 'Escape') {
+        setShowHistory(false)
+      }
     },
-    [status, startSearch]
+    [status, startSearch, keyword]
   )
+
+  const handleHistorySelect = (kw) => {
+    setKeyword(kw)
+    setShowHistory(false)
+    startSearch(kw)
+  }
+
+  const handleFocus = () => {
+    if (!keyword.trim()) {
+      setShowHistory(true)
+    }
+  }
 
   const isSearching = status === 'searching'
 
   return (
-    <div className="w-full">
+    <div className="w-full" ref={containerRef}>
       {/* Search input row */}
       <div className="flex gap-3">
         <div className="flex-1 relative">
@@ -33,15 +63,24 @@ export default function SearchBar() {
           <input
             type="text"
             value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
+            onChange={(e) => {
+              setKeyword(e.target.value)
+              if (e.target.value.trim()) setShowHistory(false)
+            }}
+            onFocus={handleFocus}
             onKeyDown={handleKeyDown}
             placeholder="Search songs, artists, albums..."
             className="w-full pl-10 pr-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-sm text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-colors"
             disabled={isSearching}
           />
+          {/* History dropdown */}
+          <SearchHistory
+            visible={showHistory}
+            onSelect={handleHistorySelect}
+          />
         </div>
         <button
-          onClick={startSearch}
+          onClick={() => { setShowHistory(false); startSearch() }}
           disabled={isSearching || !keyword.trim()}
           className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-neutral-700 disabled:text-neutral-500 text-white text-sm font-medium rounded-xl transition-colors disabled:cursor-not-allowed flex items-center gap-2"
         >

@@ -8,6 +8,7 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from fastapi import WebSocket
 from musicdl import musicdl
+from history import save_search_history
 
 
 DEFAULT_SOURCES = [
@@ -45,6 +46,9 @@ async def ws_search(websocket: WebSocket):
         await websocket.send_json({"type": "error", "message": "keyword is required"})
         await websocket.close()
         return
+
+    # Save to search history
+    save_search_history(keyword, sources)
 
     loop = asyncio.get_event_loop()
 
