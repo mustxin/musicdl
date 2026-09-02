@@ -41,9 +41,15 @@ export default function useSearch() {
     .filter(([, v]) => v.enabled)
     .map(([k]) => k)
 
-  // If connection fails while searching, stop spinner
+  // Fallback: stop the spinner only when THIS instance's connection actually
+  // dropped mid-search (readyState transitioned INTO closed). A never-connected
+  // instance (e.g. ResultGrid's, which statically holds readyState=3) must not
+  // kill the searching state.
+  const prevReadyStateRef = useRef(readyState)
   useEffect(() => {
-    if (readyState === 3 && ctx.status === 'searching') {
+    const wasConnected = prevReadyStateRef.current !== 3
+    prevReadyStateRef.current = readyState
+    if (wasConnected && readyState === 3 && ctx.status === 'searching') {
       ctx.setStatus('done')
     }
   }, [readyState, ctx.status])
