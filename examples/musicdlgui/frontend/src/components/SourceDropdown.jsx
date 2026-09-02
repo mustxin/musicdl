@@ -22,7 +22,7 @@ export default function SourceDropdown() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center justify-between gap-2 px-4 py-3 bg-midnight-900 border border-midnight-700 hover:border-midnight-600 rounded-xl text-sm text-neutral-300 transition-colors whitespace-nowrap min-w-[140px] cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
+        className="flex items-center justify-between gap-2 h-12 px-4 bg-midnight-800/80 hover:bg-midnight-800 border border-transparent hover:border-midnight-700 focus:border-midnight-600 rounded-full text-sm text-neutral-300 transition-all duration-200 whitespace-nowrap min-w-[140px] cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
       >
         <svg className="w-4 h-4 text-neutral-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />

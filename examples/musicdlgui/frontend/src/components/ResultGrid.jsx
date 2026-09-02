@@ -1,10 +1,34 @@
+import { useState, useEffect } from 'react'
 import useSearch from '../hooks/useSearch'
 import { useDownloadContext } from '../contexts/DownloadContext'
 import ResultCard from './ResultCard'
 
+const formatElapsed = (s) => {
+  const m = Math.floor(s / 60)
+  const sec = s % 60
+  return m > 0 ? `${m}m ${sec}s` : `${sec}s`
+}
+
 export default function ResultGrid() {
-  const { results, status, keyword } = useSearch()
+  const { results, status, keyword, sources, sourceStatus } = useSearch()
   const { startDownload } = useDownloadContext()
+  const [elapsed, setElapsed] = useState(0)
+
+  const isSearching = status === 'searching'
+
+  // Elapsed timer — runs while the engine is working
+  useEffect(() => {
+    if (isSearching) {
+      setElapsed(0)
+      const timer = setInterval(() => setElapsed(e => e + 1), 1000)
+      return () => clearInterval(timer)
+    }
+  }, [isSearching])
+
+  const enabledSources = Object.entries(sources)
+    .filter(([, v]) => v.enabled)
+    .map(([k, v]) => ({ name: k, short: v.short }))
+  const doneCount = enabledSources.filter(s => sourceStatus[s.name] === 'done').length
 
   const handleDownload = (songInfo) => {
     startDownload([songInfo])
@@ -20,7 +44,7 @@ export default function ResultGrid() {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
-          <svg className="w-16 h-16 text-midnight-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+          <svg className="w-16 h-16 text-midnight-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <p className="text-neutral-500 text-sm">Search for music to get started</p>
@@ -29,15 +53,24 @@ export default function ResultGrid() {
     )
   }
 
-  if (status === 'searching' && results.length === 0) {
+  if (isSearching && results.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center" aria-live="polite">
         <div className="text-center">
-          <svg className="animate-spin w-8 h-8 text-indigo-400 mx-auto mb-3" viewBox="0 0 24 24" fill="none">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          <p className="text-neutral-400 text-sm">Searching...</p>
+          {/* Equalizer — the engine is working */}
+          <div className="flex items-end justify-center gap-1.5 h-7 mx-auto" aria-hidden="true">
+            {[0, 1, 2, 3].map(i => (
+              <span
+                key={i}
+                className="eq-bar w-1.5 h-7 rounded-full bg-indigo-400"
+                style={{ animationDelay: `${i * 0.15}s` }}
+              />
+            ))}
+          </div>
+          <p className="text-neutral-200 text-sm font-medium mt-4">Searching…</p>
+          <p className="text-neutral-600 text-xs mt-1 tabular-nums">
+            {doneCount}/{enabledSources.length} sources · {formatElapsed(elapsed)} elapsed
+          </p>
         </div>
       </div>
     )
@@ -47,7 +80,7 @@ export default function ResultGrid() {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
-          <svg className="w-14 h-14 text-midnight-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+          <svg className="w-14 h-14 text-midnight-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <p className="text-neutral-400 text-sm">

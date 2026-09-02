@@ -35,6 +35,16 @@ body {
   background: #4E4E73;
 }
 
+/* Equalizer bars — music-themed "engine working" indicator */
+@keyframes eq {
+  0%, 100% { transform: scaleY(0.25); }
+  50% { transform: scaleY(1); }
+}
+.eq-bar {
+  animation: eq 1.1s ease-in-out infinite;
+  transform-origin: bottom;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
     animation-duration: 0.01ms !important;
