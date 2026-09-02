@@ -91,7 +91,7 @@ export default function SearchBar() {
             onFocus={handleFocus}
             onKeyDown={handleKeyDown}
             placeholder="Search songs, artists, albums..."
-            className="w-full pl-10 pr-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-sm text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-colors"
+            className="w-full pl-10 pr-4 py-3 bg-midnight-900 border border-midnight-700 focus:border-midnight-600 rounded-xl text-sm text-neutral-100 placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-colors"
             disabled={isSearching}
           />
           <SearchHistory visible={showHistory} onSelect={handleHistorySelect} />
@@ -101,7 +101,7 @@ export default function SearchBar() {
         <button
           onClick={() => { setShowHistory(false); startSearch() }}
           disabled={isSearching || !keyword.trim()}
-          className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-neutral-700 disabled:text-neutral-500 text-white text-sm font-medium rounded-xl transition-colors disabled:cursor-not-allowed flex items-center gap-2"
+          className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-midnight-800 disabled:text-neutral-500 text-white text-sm font-medium rounded-xl transition-colors disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
         >
           {isSearching ? (
             <>
@@ -119,7 +119,7 @@ export default function SearchBar() {
 
       {/* Source tags + search progress (merged row) */}
       {(isSearching || isComplete) && (
-        <div className="mt-3 p-3 rounded-xl bg-neutral-900/50 border border-neutral-800">
+        <div className="mt-3 p-3 rounded-2xl bg-midnight-900/60 border border-midnight-800">
           <div className="flex items-center gap-3 flex-wrap">
             {/* Per-source badges */}
             {activeSourceNames.map(({ name, short }) => {
@@ -134,7 +134,7 @@ export default function SearchBar() {
                       ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
                       : isErr
                       ? 'bg-red-500/10 text-red-400 border border-red-500/30'
-                      : 'bg-neutral-700 text-neutral-400'
+                      : 'bg-midnight-800 text-neutral-400'
                   }`}
                 >
                   {!isDone && !isErr && (

@@ -110,3 +110,4 @@ musicdl_outputs/
 
 # GUI runtime state
 examples/musicdlgui/backend/.search_history.json
+.claude/

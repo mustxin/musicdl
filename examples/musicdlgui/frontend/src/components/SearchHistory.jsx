@@ -42,7 +42,7 @@ export default function SearchHistory({ onSelect, visible }) {
   if (!visible) return null
 
   return (
-    <div className="absolute top-full left-0 right-0 mt-2 bg-neutral-800 border border-neutral-700 rounded-xl shadow-2xl z-50 overflow-hidden">
+    <div className="absolute top-full left-0 right-0 mt-2 bg-midnight-900 border border-midnight-700 rounded-xl shadow-2xl shadow-black/50 z-50 overflow-hidden">
       {loading ? (
         <div className="px-4 py-6 text-center">
           <svg className="animate-spin w-4 h-4 text-neutral-500 mx-auto" viewBox="0 0 24 24" fill="none">
@@ -61,7 +61,7 @@ export default function SearchHistory({ onSelect, visible }) {
               <button
                 key={`${item.keyword}-${idx}`}
                 onClick={() => onSelect(item.keyword)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-700/50 transition-colors text-left"
+                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-midnight-800 transition-colors text-left cursor-pointer"
               >
                 <svg className="w-4 h-4 text-neutral-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -83,7 +83,7 @@ export default function SearchHistory({ onSelect, visible }) {
             ))}
           </div>
           {/* Clear button */}
-          <div className="border-t border-neutral-700 px-4 py-2">
+          <div className="border-t border-midnight-800 px-4 py-2">
             <button
               onClick={clearHistory}
               className="text-xs text-neutral-500 hover:text-red-400 transition-colors"

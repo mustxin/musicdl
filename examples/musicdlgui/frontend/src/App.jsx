@@ -10,7 +10,7 @@ function AppInner() {
   const [activePage, setActivePage] = useState('search')
 
   return (
-    <div className="h-screen flex bg-neutral-950">
+    <div className="h-screen flex bg-midnight-950">
       {/* Sidebar */}
       <Sidebar activePage={activePage} onPageChange={setActivePage} />
 
@@ -25,7 +25,7 @@ function AppInner() {
           </>
         ) : (
           <div className="flex-1 flex flex-col min-h-0">
-            <DownloadPanel />
+            <DownloadPanel onGoSearch={() => setActivePage('search')} />
           </div>
         )}
       </main>

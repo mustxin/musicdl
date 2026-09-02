@@ -1,7 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
+
+@theme {
+  /* Midnight Studio palette — deep blue-black for music app immersion */
+  --color-midnight-950: #0F0F23;
+  --color-midnight-900: #1B1B30;
+  --color-midnight-800: #27273B;
+  --color-midnight-700: #2E2E4A;
+  --color-midnight-600: #3D3D5C;
+
+  --font-sans: "Poppins", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
 
 :root {
   color-scheme: dark;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-feature-settings: "tnum";
 }
 
 ::-webkit-scrollbar {
@@ -11,9 +28,17 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #52525b;
+  background: #3D3D5C;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #71717a;
+  background: #4E4E73;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
