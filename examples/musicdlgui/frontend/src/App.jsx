@@ -34,7 +34,11 @@ function AppInner() {
         {activePage === 'search' ? (
           <ResultGrid />
         ) : (
-          <DownloadPanel onGoSearch={() => setActivePage('search')} />
+          <DownloadPanel onGoSearch={() => {
+            setActivePage('search')
+            // Focus the search input after the page switch renders
+            setTimeout(() => window.dispatchEvent(new Event('musicdl:focus-search')), 0)
+          }} />
         )}
       </main>
     </div>

@@ -192,18 +192,19 @@ export default function ResultGrid() {
   const filterLabel = FILTER_OPTIONS.find(o => o.value === filter)?.label || 'All'
 
   return (
-    <div className="flex-1 overflow-y-auto relative" ref={scrollRef}>
-      {/* Header with sort / filter / download all */}
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-neutral-400">
-          {displayedResults.length} result{displayedResults.length !== 1 ? 's' : ''}
-          {(filter !== 'all' || sortBy !== 'default') && (
-            <span className="text-neutral-600"> · {results.length} total</span>
-          )}
-        </p>
+    <div className="flex-1 overflow-y-auto relative pr-2.5" ref={scrollRef}>
+      {/* Header with sort / filter / download all — sticky, stays visible while scrolling */}
+      <div className="sticky top-0 z-30 -mx-2.5 px-2.5 pt-0.5 pb-3 bg-gradient-to-b from-midnight-950 via-midnight-950/95 to-transparent backdrop-blur-sm">
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-neutral-400">
+            {displayedResults.length} result{displayedResults.length !== 1 ? 's' : ''}
+            {(filter !== 'all' || sortBy !== 'default') && (
+              <span className="text-neutral-600"> · {results.length} total</span>
+            )}
+          </p>
 
-        {results.length > 0 && (
-          <div className="flex items-center gap-2">
+          {results.length > 0 && (
+            <div className="flex items-center gap-2">
             {/* Sort dropdown */}
             <div className="relative" ref={sortMenuRef}>
               <button
@@ -289,8 +290,9 @@ export default function ResultGrid() {
             >
               Download All
             </button>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Result grid */}

@@ -61,6 +61,14 @@ export default function SearchBar() {
 
   const isSearching = status === 'searching'
 
+  // Listen for external focus requests (e.g. "Search for music" button on the
+  // downloads page switches to search and focuses the input)
+  useEffect(() => {
+    const handler = () => inputRef.current?.focus()
+    window.addEventListener('musicdl:focus-search', handler)
+    return () => window.removeEventListener('musicdl:focus-search', handler)
+  }, [])
+
   return (
     <div className="w-full" ref={containerRef}>
       {/* Browser-style nav group + search pill */}
