@@ -41,6 +41,9 @@ const initialState = {
   results: [],
   sources: loadSources(),
   sourceStatus: {},  // { 'MiguMusicClient': 'pending'|'searching'|'done'|'error' }
+  // Navigation: stack of completed searches, pointer to current entry
+  historyStack: [],   // [{ keyword, results, sourceStatus }]
+  historyIndex: -1,
 }
 
 function searchReducer(state, action) {
@@ -88,6 +91,37 @@ function searchReducer(state, action) {
       saveSources(updated)
       return { ...state, sources: updated }
     }
+    case 'PUSH_HISTORY': {
+      // Truncate forward entries, push new completed search
+      const stack = [...state.historyStack.slice(0, state.historyIndex + 1), action.payload]
+      return { ...state, historyStack: stack, historyIndex: stack.length - 1 }
+    }
+    case 'NAV_BACK': {
+      if (state.historyIndex <= 0) return state
+      const idx = state.historyIndex - 1
+      const entry = state.historyStack[idx]
+      return {
+        ...state,
+        historyIndex: idx,
+        keyword: entry.keyword,
+        results: entry.results,
+        sourceStatus: entry.sourceStatus,
+        status: 'done',
+      }
+    }
+    case 'NAV_FORWARD': {
+      if (state.historyIndex >= state.historyStack.length - 1) return state
+      const idx = state.historyIndex + 1
+      const entry = state.historyStack[idx]
+      return {
+        ...state,
+        historyIndex: idx,
+        keyword: entry.keyword,
+        results: entry.results,
+        sourceStatus: entry.sourceStatus,
+        status: 'done',
+      }
+    }
     case 'RESET':
       return { ...initialState, sources: state.sources }
     default:
@@ -107,6 +141,9 @@ export function SearchProvider({ children }) {
   const toggleSource = useCallback((name) => dispatch({ type: 'TOGGLE_SOURCE', payload: name }), [])
   const toggleAllSources = useCallback((enabled) => dispatch({ type: 'SET_ALL_SOURCES', payload: enabled }), [])
   const resetSearch = useCallback(() => dispatch({ type: 'RESET' }), [])
+  const pushHistory = useCallback((entry) => dispatch({ type: 'PUSH_HISTORY', payload: entry }), [])
+  const navBack = useCallback(() => dispatch({ type: 'NAV_BACK' }), [])
+  const navForward = useCallback(() => dispatch({ type: 'NAV_FORWARD' }), [])
 
   const value = {
     ...state,
@@ -119,6 +156,9 @@ export function SearchProvider({ children }) {
     toggleSource,
     toggleAllSources,
     resetSearch,
+    pushHistory,
+    navBack,
+    navForward,
   }
 
   return <SearchContext.Provider value={value}>{children}</SearchContext.Provider>

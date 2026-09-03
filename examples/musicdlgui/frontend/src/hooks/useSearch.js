@@ -26,6 +26,11 @@ export default function useSearch() {
         break
       case 'search_done':
         c.setStatus('done')
+        c.pushHistory({
+          keyword: c.keyword,
+          results: c.results,
+          sourceStatus: c.sourceStatus,
+        })
         break
       case 'error':
         console.error('Search error:', data.message)
@@ -71,5 +76,12 @@ export default function useSearch() {
     })
   }
 
-  return { ...ctx, activeSources, startSearch, wsReadyState: readyState }
+  return {
+    ...ctx,
+    activeSources,
+    startSearch,
+    wsReadyState: readyState,
+    canGoBack: ctx.historyIndex > 0,
+    canGoForward: ctx.historyIndex >= 0 && ctx.historyIndex < ctx.historyStack.length - 1,
+  }
 }
