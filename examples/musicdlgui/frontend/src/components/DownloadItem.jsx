@@ -6,10 +6,21 @@ const STATUS_STYLES = {
   cancelled: 'text-neutral-500',
 }
 
+const formatBytes = (b) => {
+  if (!b || b <= 0) return ''
+  if (b >= 1024 ** 3) return `${(b / 1024 ** 3).toFixed(2)} GB`
+  if (b >= 1024 ** 2) return `${(b / 1024 ** 2).toFixed(1)} MB`
+  if (b >= 1024) return `${(b / 1024).toFixed(0)} KB`
+  return `${b} B`
+}
+
 export default function DownloadItem({ item, onCancel }) {
-  const { songInfo, percent, speed, status, error } = item
+  const { songInfo, percent, speed, status, error, downloadedBytes, totalBytes } = item
   const isActive = status === 'downloading' || status === 'queued'
   const isComplete = status === 'complete'
+  const sizeText = totalBytes > 0
+    ? `${formatBytes(downloadedBytes)} / ${formatBytes(totalBytes)}`
+    : formatBytes(downloadedBytes) || (songInfo.file_size || '')
 
   return (
     <div className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-midnight-900/80 transition-colors">
@@ -53,10 +64,11 @@ export default function DownloadItem({ item, onCancel }) {
         </div>
       </div>
 
-      {/* Speed / percent */}
-      <span className="text-xs text-neutral-500 w-16 text-right tabular-nums">
-        {speed ? `${speed}` : `${Math.round(percent)}%`}
-      </span>
+      {/* Speed / size / percent */}
+      <div className="text-xs text-neutral-500 w-40 text-right tabular-nums leading-4">
+        {speed ? <div className="text-indigo-400/80">{speed}</div> : null}
+        <div>{sizeText || `${Math.round(percent)}%`}</div>
+      </div>
 
       {/* Status text */}
       <span className={`text-xs w-20 text-right ${STATUS_STYLES[status] || 'text-neutral-500'}`}>

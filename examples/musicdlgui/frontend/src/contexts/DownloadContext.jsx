@@ -28,8 +28,16 @@ function downloadReducer(state, action) {
       return {
         ...state,
         items: state.items.map((item) =>
-          item.id === action.payload.task_id || item.songInfo?.song_name === action.payload.song_name
-            ? { ...item, percent: action.payload.percent, speed: action.payload.speed || item.speed, status: 'downloading' }
+          item.id === action.payload.task_id &&
+          item.status !== 'complete' && item.status !== 'error' && item.status !== 'cancelled'
+            ? {
+                ...item,
+                percent: action.payload.percent,
+                speed: action.payload.speed || item.speed,
+                downloadedBytes: action.payload.downloaded_bytes ?? item.downloadedBytes,
+                totalBytes: action.payload.total_bytes ?? item.totalBytes,
+                status: 'downloading',
+              }
             : item
         ),
       }
