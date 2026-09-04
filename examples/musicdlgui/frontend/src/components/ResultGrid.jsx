@@ -51,6 +51,8 @@ export default function ResultGrid() {
   const [showFilterMenu, setShowFilterMenu] = useState(false)
   const [showBackTop, setShowBackTop] = useState(false)
   const [sortDir, setSortDir] = useState('desc')
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedKeys, setSelectedKeys] = useState(() => new Set())
   const scrollRef = useRef(null)
   const sortMenuRef = useRef(null)
   const filterMenuRef = useRef(null)
@@ -130,8 +132,55 @@ export default function ResultGrid() {
   }
 
   const handleDownloadAll = () => {
-    if (displayedResults.length > 0) {
-      startDownload(displayedResults)
+    // Entering batch mode with everything pre-selected — the user then
+    // confirms via the Download action button.
+    setSelectionMode(true)
+    setSelectedKeys(new Set(displayedResults.map((_, i) => i)))
+  }
+
+  // ---- Batch selection mode ----
+  // Selection keys are INDICES into displayedResults — unique even when the
+  // search returns duplicate tracks (same name/singer/source), which string
+  // keys cannot guarantee.
+  const resultKey = (songInfo) => displayedResults.indexOf(songInfo)
+
+  const enterSelectionMode = () => {
+    setSelectionMode(true)
+    setSelectedKeys(new Set())
+  }
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false)
+    setSelectedKeys(new Set())
+  }
+
+  const toggleSelect = (songInfo) => {
+    setSelectedKeys(prev => {
+      const next = new Set(prev)
+      const k = resultKey(songInfo)
+      if (next.has(k)) next.delete(k)
+      else next.add(k)
+      return next
+    })
+  }
+
+  const allSelected = selectionMode && displayedResults.length > 0 && selectedKeys.size === displayedResults.length
+
+  const toggleSelectAll = () => {
+    setSelectedKeys(prev => {
+      if (allSelected) return new Set()
+      return new Set(displayedResults.map((_, i) => i))
+    })
+  }
+
+  const selectedSongs = selectionMode
+    ? displayedResults.filter(r => selectedKeys.has(resultKey(r)))
+    : []
+
+  const handleDownloadSelected = () => {
+    if (selectedSongs.length > 0) {
+      startDownload(selectedSongs)
+      exitSelectionMode()
     }
   }
 
@@ -194,17 +243,90 @@ export default function ResultGrid() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 relative">
-      {/* Header with sort / filter — OUTSIDE the scroll area, so the
-          scrollbar's top aligns with the card grid, not the header */}
+      {/* Header — OUTSIDE the scroll area, so the scrollbar's top aligns
+          with the card grid. Two modes: normal (sort/filter/download-all)
+          and selection (select-all/selected-count/exit). */}
       <div className="flex items-center justify-between pb-4 pr-2.5">
-        <p className="text-sm text-neutral-400">
-          {displayedResults.length} result{displayedResults.length !== 1 ? 's' : ''}
-          {(filter !== 'all' || sortBy !== 'default') && (
-            <span className="text-neutral-600"> · {results.length} total</span>
-          )}
-        </p>
+        <div className="flex items-center gap-2">
+          {/* Result count — leftmost, then action buttons */}
+          <p className="text-sm text-neutral-400 mr-2">
+            {displayedResults.length} result{displayedResults.length !== 1 ? 's' : ''}
+            {(filter !== 'all' || sortBy !== 'default') && !selectionMode && (
+              <span className="text-neutral-600"> · {results.length} total</span>
+            )}
+          </p>
 
-          {results.length > 0 && (
+          {results.length > 0 && !selectionMode && (
+            <>
+            <button
+              onClick={handleDownloadAll}
+              disabled={displayedResults.length === 0}
+              className="text-xs px-3 py-1.5 h-8 bg-midnight-800 hover:bg-midnight-700 disabled:opacity-30 disabled:cursor-not-allowed text-neutral-300 rounded-full border border-midnight-700 hover:border-midnight-600 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
+            >
+              Download
+            </button>
+            <button
+              onClick={enterSelectionMode}
+              className="text-xs px-3 py-1.5 h-8 bg-midnight-800/80 hover:bg-midnight-800 text-neutral-400 hover:text-neutral-100 rounded-full border border-transparent hover:border-midnight-700 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none flex items-center gap-1.5"
+              aria-label="Enter batch selection mode"
+              title="Batch select"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+              Batch
+            </button>
+            </>
+          )}
+
+          {/* Selection-mode toolbar — replaces download/batch while active */}
+          {results.length > 0 && selectionMode && (
+            <>
+              <button
+                onClick={toggleSelectAll}
+                className={`flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none border ${
+                  allSelected
+                    ? 'bg-indigo-600 text-white border-indigo-500'
+                    : 'bg-midnight-800/80 hover:bg-midnight-800 text-neutral-400 hover:text-neutral-100 border-transparent hover:border-midnight-700'
+                }`}
+                aria-pressed={allSelected}
+              >
+                <span className={`w-4 h-4 rounded border-2 flex items-center justify-center ${allSelected ? 'border-white' : 'border-neutral-400'}`}>
+                  {allSelected && (
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </span>
+                {allSelected
+                  ? `Deselect all (${selectedKeys.size})`
+                  : selectedKeys.size > 0
+                  ? `Select all (${selectedKeys.size}/${displayedResults.length})`
+                  : `Select all (${displayedResults.length})`}
+              </button>
+              <button
+                onClick={handleDownloadSelected}
+                disabled={selectedKeys.size === 0}
+                className="text-xs px-3 py-1.5 h-8 bg-indigo-600 hover:bg-indigo-500 disabled:bg-midnight-800 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-full transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
+              >
+                Download
+              </button>
+              <button
+                onClick={exitSelectionMode}
+                className="flex items-center gap-1 h-8 px-3 rounded-full text-xs text-neutral-400 hover:text-red-300 bg-midnight-800/80 hover:bg-red-500/10 border border-transparent hover:border-red-500/30 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:outline-none"
+                aria-label="Exit batch selection mode"
+                title="Exit selection"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Exit
+              </button>
+            </>
+          )}
+        </div>
+
+          {results.length > 0 && !selectionMode && (
             <div className="flex items-center gap-2">
             {/* Sort dropdown */}
             <div className="relative" ref={sortMenuRef}>
@@ -284,13 +406,6 @@ export default function ResultGrid() {
               )}
             </div>
 
-            <button
-              onClick={handleDownloadAll}
-              disabled={displayedResults.length === 0}
-              className="text-xs px-3 py-1.5 h-8 bg-midnight-800 hover:bg-midnight-700 disabled:opacity-30 disabled:cursor-not-allowed text-neutral-300 rounded-full border border-midnight-700 hover:border-midnight-600 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
-            >
-              Download All
-            </button>
             </div>
           )}
       </div>
@@ -303,6 +418,9 @@ export default function ResultGrid() {
               key={`${songInfo.song_name}-${songInfo.singers}-${idx}`}
               songInfo={songInfo}
               onDownload={handleDownload}
+              selectionMode={selectionMode}
+              selected={selectedKeys.has(resultKey(songInfo))}
+              onToggleSelect={toggleSelect}
             />
           ))}
         </div>

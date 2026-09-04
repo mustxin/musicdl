@@ -12,14 +12,32 @@ const SOURCE_SHORT = {
   KuwoMusicClient: 'Kuwo', QianqianMusicClient: 'Qianqian', KugouMusicClient: 'Kugou',
 }
 
-export default function ResultCard({ songInfo, onDownload }) {
+export default function ResultCard({ songInfo, onDownload, selectionMode = false, selected = false, onToggleSelect }) {
   const ext = (songInfo.ext || 'mp3').toUpperCase()
   const isLossless = ['FLAC', 'WAV', 'ALAC', 'APE', 'DSF', 'DFF'].includes(ext)
   const sourceColor = SOURCE_COLORS[songInfo.source] || 'bg-midnight-800 text-neutral-400 border-midnight-600'
   const sourceShort = SOURCE_SHORT[songInfo.source] || (songInfo.source || '').replace('MusicClient', '')
 
+  const handleCardClick = () => {
+    if (selectionMode && onToggleSelect) {
+      onToggleSelect(songInfo)
+    }
+  }
+
   return (
-    <div className="group bg-midnight-900/80 hover:bg-midnight-900 rounded-2xl border border-midnight-700/60 hover:border-midnight-600 transition-[transform,background-color,border-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/40 overflow-hidden">
+    <div
+      onClick={handleCardClick}
+      className={`group rounded-2xl border transition-[transform,background-color,border-color,box-shadow] duration-300 overflow-hidden ${
+        selectionMode ? 'cursor-pointer' : 'bg-midnight-900/80 hover:bg-midnight-900 hover:border-midnight-600 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/40'
+      } ${
+        selected ? 'border-indigo-500 bg-indigo-500/10 shadow-lg shadow-indigo-950/40' : selectionMode ? 'border-midnight-700/60 hover:border-midnight-600' : 'border-midnight-700/60'
+      }`}
+      role={selectionMode ? 'checkbox' : undefined}
+      aria-checked={selectionMode ? selected : undefined}
+      aria-label={selectionMode ? `Select ${songInfo.song_name || 'track'}` : undefined}
+      tabIndex={selectionMode ? 0 : undefined}
+      onKeyDown={selectionMode ? (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); onToggleSelect(songInfo) } } : undefined}
+    >
       {/* Cover art area */}
       <div className="aspect-square bg-midnight-800 relative">
         {songInfo.cover_url ? (
@@ -41,18 +59,37 @@ export default function ResultCard({ songInfo, onDownload }) {
         <span className={`absolute top-2 left-2 text-[10px] font-semibold px-2 py-0.5 rounded-md border backdrop-blur-sm ${sourceColor}`}>
           {sourceShort}
         </span>
-        {/* Bottom gradient mask + persistent download button */}
-        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
-        <button
-          onClick={() => onDownload(songInfo)}
-          className="absolute bottom-2 right-2 w-9 h-9 bg-indigo-600 hover:bg-indigo-500 rounded-full flex items-center justify-center shadow-lg shadow-black/40 transition-colors duration-150 cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
-          title="Download"
-          aria-label={`Download ${songInfo.song_name || 'track'}`}
-        >
-          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-        </button>
+        {/* Selection checkbox — visible only in selection mode */}
+        {selectionMode && (
+          <span
+            className={`absolute top-2 right-2 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${
+              selected ? 'bg-indigo-600 border-indigo-500' : 'bg-black/40 border-neutral-300/70 backdrop-blur-sm'
+            }`}
+            aria-hidden="true"
+          >
+            {selected && (
+              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </span>
+        )}
+        {/* Bottom gradient mask + persistent download button (hidden in selection mode) */}
+        {!selectionMode && (
+          <>
+            <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
+            <button
+              onClick={(e) => { e.stopPropagation(); onDownload(songInfo) }}
+              className="absolute bottom-2 right-2 w-9 h-9 bg-indigo-600 hover:bg-indigo-500 rounded-full flex items-center justify-center shadow-lg shadow-black/40 transition-colors duration-150 cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
+              title="Download"
+              aria-label={`Download ${songInfo.song_name || 'track'}`}
+            >
+              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+            </button>
+          </>
+        )}
       </div>
 
       {/* Info */}
