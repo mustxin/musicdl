@@ -15,12 +15,21 @@ const formatBytes = (b) => {
 }
 
 export default function DownloadItem({ item, onCancel }) {
-  const { songInfo, percent, speed, status, error, downloadedBytes, totalBytes } = item
+  const { songInfo, percent, speed, status, error, errorCode, downloadedBytes, totalBytes } = item
   const isActive = status === 'downloading' || status === 'queued'
   const isComplete = status === 'complete'
+  const isError = status === 'error'
+  const isLinkExpired = isError && errorCode === 'link_expired'
   const sizeText = totalBytes > 0
     ? `${formatBytes(downloadedBytes)} / ${formatBytes(totalBytes)}`
     : formatBytes(downloadedBytes) || (songInfo.file_size || '')
+
+  const statusText =
+    status === 'downloading' ? 'Downloading' :
+    status === 'queued' ? 'Queued' :
+    isComplete ? '✓ Done' :
+    isError ? 'Failed' :
+    status === 'cancelled' ? 'Cancelled' : ''
 
   return (
     <div className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-midnight-900/80 transition-colors">
@@ -43,10 +52,21 @@ export default function DownloadItem({ item, onCancel }) {
         )}
       </div>
 
-      {/* Song info */}
+      {/* Song info + error detail line */}
       <div className="flex-1 min-w-0">
         <p className="text-sm text-neutral-200 truncate">{songInfo.song_name || 'Unknown'}</p>
-        <p className="text-xs text-neutral-500 truncate">{songInfo.singers || ''}</p>
+        {isError ? (
+          <p className="text-xs truncate mt-0.5" title={error}>
+            <span className={isLinkExpired ? 'text-amber-400/90' : 'text-red-400/90'}>
+              {isLinkExpired ? '⏱ ' : '⚠ '}{error || '下载失败'}
+            </span>
+            {isLinkExpired && (
+              <span className="text-neutral-600"> · 搜索同关键词重新下载即可</span>
+            )}
+          </p>
+        ) : (
+          <p className="text-xs text-neutral-500 truncate">{songInfo.singers || ''}</p>
+        )}
       </div>
 
       {/* Progress bar */}
@@ -55,7 +75,7 @@ export default function DownloadItem({ item, onCancel }) {
           <div
             className={`h-full rounded-full transition-all duration-300 ${
               isComplete ? 'bg-emerald-500' :
-              status === 'error' ? 'bg-red-500' :
+              isError ? (isLinkExpired ? 'bg-amber-500' : 'bg-red-500') :
               status === 'cancelled' ? 'bg-midnight-600' :
               'bg-indigo-500'
             }`}
@@ -72,11 +92,7 @@ export default function DownloadItem({ item, onCancel }) {
 
       {/* Status text */}
       <span className={`text-xs w-20 text-right ${STATUS_STYLES[status] || 'text-neutral-500'}`}>
-        {status === 'downloading' && 'Downloading'}
-        {status === 'queued' && 'Queued'}
-        {isComplete && '✓ Done'}
-        {status === 'error' && (error || 'Failed')}
-        {status === 'cancelled' && 'Cancelled'}
+        {statusText}
       </span>
 
       {/* Cancel button */}

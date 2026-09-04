@@ -57,7 +57,7 @@ function downloadReducer(state, action) {
         ...state,
         items: state.items.map((item) =>
           item.id === action.payload.task_id
-            ? { ...item, status: 'error', error: action.payload.message }
+            ? { ...item, status: 'error', error: action.payload.message, errorCode: action.payload.error_code || 'download_failed' }
             : item
         ),
       }
@@ -101,7 +101,7 @@ export function DownloadProvider({ children }) {
         dispatch({ type: 'MARK_COMPLETE', payload: { task_id: data.task_id } })
         break
       case 'error':
-        dispatch({ type: 'MARK_ERROR', payload: { task_id: data.task_id || '', message: data.message } })
+        dispatch({ type: 'MARK_ERROR', payload: { task_id: data.task_id || '', message: data.message, error_code: data.error_code } })
         break
       case 'cancelled':
         dispatch({ type: 'MARK_CANCELLED', payload: { task_id: data.task_id } })

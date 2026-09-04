@@ -62,6 +62,43 @@ def _format_speed(bytes_per_sec: float) -> str:
     return f"{bytes_per_sec:.0f} B/s"
 
 
+def _classify_download_error(exc: Exception) -> tuple[str, str]:
+    """Map a raw download exception to (error_code, user-friendly message).
+
+    error_code drives the frontend presentation (retry hint, icon, wording).
+    """
+    raw = str(exc)
+    # Extract HTTP status defensively: response attr may be a Response whose
+    # status_code is a property that can fail; never trust and-chains here.
+    status = None
+    try:
+        resp = getattr(exc, 'response', None)
+        if resp is not None:
+            status = resp.status_code
+    except Exception:
+        status = None
+    if status is None:
+        import re as _re
+        m = _re.search(r"\b([45]\d\d)\b", raw)
+        if m:
+            status = int(m.group(1))
+    if not isinstance(status, int):
+        status = None
+    if status in (403, 410):
+        return "link_expired", "下载链接已过期，请重新搜索后再下载"
+    if status == 404:
+        return "link_gone", "资源不存在或已被下架"
+    if status is not None and 400 <= status < 500:
+        return "request_rejected", f"下载请求被拒绝（HTTP {status}），请稍后重试或重新搜索"
+    if status is not None and 500 <= status < 600:
+        return "server_error", f"源服务器错误（HTTP {status}），请稍后重试"
+    if "timed out" in raw.lower() or "timeout" in raw.lower():
+        return "timeout", "下载超时，请检查网络后重试"
+    if "connection" in raw.lower() or isinstance(exc, (ConnectionError, OSError)):
+        return "network", "网络连接失败，请检查网络后重试"
+    return "download_failed", "下载失败，请重试；若持续失败请重新搜索"
+
+
 def _clean_zero_byte_files(work_dir: str):
     """Remove 0-byte mutagen temp stragglers (mkstemp leftovers).
 
@@ -111,11 +148,12 @@ async def ws_download(websocket: WebSocket):
             "speed": speed,
         })
 
-    async def _send_error(task_id: str, message: str):
+    async def _send_error(task_id: str, message: str, error_code: str = "download_failed"):
         await _send({
             "type": "error",
             "task_id": task_id,
             "message": str(message)[:200],
+            "error_code": error_code,
         })
 
     try:
@@ -166,13 +204,14 @@ async def ws_download(websocket: WebSocket):
                         item_task_id = f"{tid}-{i}"
                         song_label = si.song_name or "unknown"
                         try:
-                            # Pick a client from the item's source for its
-                            # session/retry machinery
-                            client = musicdl.MusicClient(
-                                music_sources=[si.source],
-                                init_music_clients_cfg={si.source: {"work_dir": si.work_dir, "disable_print": True}},
-                            ).music_clients[si.source]
-                            resp = client.get(si.download_url, stream=True, timeout=(10, 60))
+                            # Direct requests with browser UA — musicdl's client.get
+                            # retry loop crashes with TypeError ('int' vs 'Response')
+                            # on error responses, so we bypass it.
+                            import requests as _requests
+                            resp = _requests.get(
+                                si.download_url, stream=True, timeout=(10, 60),
+                                headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36'},
+                            )
                             resp.raise_for_status()
                             total_bytes = int(float(resp.headers.get("Content-Length", 0) or 0))
                             # Fallback total from search-time file_size text
@@ -220,8 +259,9 @@ async def ws_download(websocket: WebSocket):
                                 raise RuntimeError('download produced no file')
                             # write tags/lyrics like client.download() would
                             try:
+                                from musicdl.modules.utils import LoggerHandle
                                 SongInfoUtils.supplsonginfothensavelyricsthenwritetags(
-                                    si, logger_handle=client.logger_handle, disable_print=True)
+                                    si, logger_handle=LoggerHandle(), disable_print=True)
                             except Exception:
                                 pass  # tag failure is not a download failure
                             # clean mutagen temp stragglers in this item's dir now
@@ -235,10 +275,11 @@ async def ws_download(websocket: WebSocket):
                                 pass
                             report_item_done(tid)
                         except Exception as e:
-                            print(f"[ws_download] failed {si.song_name}: {e}")
+                            code, friendly = _classify_download_error(e)
+                            print(f"[ws_download] failed {si.song_name} ({code}): {e}")
                             try:
                                 fut = asyncio.run_coroutine_threadsafe(
-                                    _send_error(item_task_id, f"{e}"), loop)
+                                    _send_error(item_task_id, friendly, code), loop)
                                 fut.result(timeout=5)
                             except Exception:
                                 pass
