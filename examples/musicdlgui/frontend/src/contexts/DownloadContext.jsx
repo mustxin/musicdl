@@ -72,6 +72,27 @@ function downloadReducer(state, action) {
         ),
       }
     }
+    case 'MARK_PAUSED': {
+      // single id, or '*'-prefixed batch payload marks all active items
+      const id = action.payload.task_id
+      return {
+        ...state,
+        items: state.items.map((item) => {
+          const match = item.id === id || (id === '*' && (item.status === 'downloading' || item.status === 'queued'))
+          return match ? { ...item, status: 'paused' } : item
+        }),
+      }
+    }
+    case 'MARK_RESUMED': {
+      const id = action.payload.task_id
+      return {
+        ...state,
+        items: state.items.map((item) => {
+          const match = item.id === id || (id === '*' && item.status === 'paused')
+          return match ? { ...item, status: 'downloading' } : item
+        }),
+      }
+    }
     case 'CLEAR_COMPLETED': {
       return {
         ...state,
@@ -106,6 +127,12 @@ export function DownloadProvider({ children }) {
       case 'cancelled':
         dispatch({ type: 'MARK_CANCELLED', payload: { task_id: data.task_id } })
         break
+      case 'paused':
+        dispatch({ type: 'MARK_PAUSED', payload: { task_id: data.task_id } })
+        break
+      case 'resumed':
+        dispatch({ type: 'MARK_RESUMED', payload: { task_id: data.task_id } })
+        break
     }
   }, [])
 
@@ -122,23 +149,68 @@ export function DownloadProvider({ children }) {
     })
   }, [wsConnect, sendMessage])
 
-  const cancelDownload = useCallback((taskId) => {
-    sendMessage({ type: 'cancel', task_id: taskId })
-    dispatch({ type: 'MARK_CANCELLED', payload: { task_id: taskId } })
+  // ---- per-item + batch control ----
+  const pauseItem = useCallback((itemId) => {
+    sendMessage({ type: 'pause', task_id: itemId })
+    dispatch({ type: 'MARK_PAUSED', payload: { task_id: itemId } })
   }, [sendMessage])
 
+  const resumeItem = useCallback((itemId) => {
+    sendMessage({ type: 'resume', task_id: itemId })
+    dispatch({ type: 'MARK_RESUMED', payload: { task_id: itemId } })
+  }, [sendMessage])
+
+  const cancelItem = useCallback((itemId) => {
+    sendMessage({ type: 'cancel', task_id: itemId })
+    dispatch({ type: 'MARK_CANCELLED', payload: { task_id: itemId } })
+  }, [sendMessage])
+
+  const pauseAll = useCallback(() => {
+    // pause every active batch on the backend
+    const batchIds = new Set(state.items.map(i => i.id.split('-').slice(0, -1).join('-')))
+    batchIds.forEach(tid => sendMessage({ type: 'pause', task_id: tid }))
+    dispatch({ type: 'MARK_PAUSED', payload: { task_id: '*' } })
+  }, [sendMessage, state.items])
+
+  const resumeAll = useCallback(() => {
+    const batchIds = new Set(state.items.filter(i => i.status === 'paused').map(i => i.id.split('-').slice(0, -1).join('-')))
+    batchIds.forEach(tid => sendMessage({ type: 'resume', task_id: tid }))
+    dispatch({ type: 'MARK_RESUMED', payload: { task_id: '*' } })
+  }, [sendMessage, state.items])
+
+  const cancelAll = useCallback(() => {
+    const batchIds = new Set(state.items
+      .filter(i => i.status === 'downloading' || i.status === 'queued' || i.status === 'paused')
+      .map(i => i.id.split('-').slice(0, -1).join('-')))
+    batchIds.forEach(tid => sendMessage({ type: 'cancel', task_id: tid }))
+    state.items.forEach(i => {
+      if (i.status === 'downloading' || i.status === 'queued' || i.status === 'paused') {
+        dispatch({ type: 'MARK_CANCELLED', payload: { task_id: i.id } })
+      }
+    })
+  }, [sendMessage, state.items])
+
+  const cancelDownload = cancelItem
   const clearCompleted = useCallback(() => dispatch({ type: 'CLEAR_COMPLETED' }), [])
   const togglePanel = useCallback(() => dispatch({ type: 'TOGGLE_PANEL' }), [])
 
   const activeCount = state.items.filter((i) => i.status === 'queued' || i.status === 'downloading').length
+  const pausedCount = state.items.filter((i) => i.status === 'paused').length
 
   const value = {
     ...state,
     startDownload,
     cancelDownload,
+    pauseItem,
+    resumeItem,
+    cancelItem,
+    pauseAll,
+    resumeAll,
+    cancelAll,
     clearCompleted,
     togglePanel,
     activeCount,
+    pausedCount,
   }
 
   return <DownloadContext.Provider value={value}>{children}</DownloadContext.Provider>

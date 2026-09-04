@@ -1,6 +1,7 @@
 const STATUS_STYLES = {
   queued: 'text-neutral-400',
   downloading: 'text-indigo-400',
+  paused: 'text-amber-400',
   complete: 'text-emerald-400',
   error: 'text-red-400',
   cancelled: 'text-neutral-500',
@@ -14,19 +15,24 @@ const formatBytes = (b) => {
   return `${b} B`
 }
 
-export default function DownloadItem({ item, onCancel }) {
+const ACTION_BTN = 'w-7 h-7 flex items-center justify-center rounded-full text-neutral-500 hover:text-neutral-100 hover:bg-midnight-700/60 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none'
+
+export default function DownloadItem({ item, onPause, onResume, onCancel }) {
   const { songInfo, percent, speed, status, error, errorCode, downloadedBytes, totalBytes } = item
   const isActive = status === 'downloading' || status === 'queued'
+  const isPaused = status === 'paused'
   const isComplete = status === 'complete'
   const isError = status === 'error'
   const isLinkExpired = isError && errorCode === 'link_expired'
+  const isDownloading = status === 'downloading'
   const sizeText = totalBytes > 0
     ? `${formatBytes(downloadedBytes)} / ${formatBytes(totalBytes)}`
     : formatBytes(downloadedBytes) || (songInfo.file_size || '')
 
   const statusText =
-    status === 'downloading' ? 'Downloading' :
+    isDownloading ? 'Downloading' :
     status === 'queued' ? 'Queued' :
+    isPaused ? 'Paused' :
     isComplete ? '✓ Done' :
     isError ? 'Failed' :
     status === 'cancelled' ? 'Cancelled' : ''
@@ -69,12 +75,13 @@ export default function DownloadItem({ item, onCancel }) {
         )}
       </div>
 
-      {/* Progress bar */}
-      <div className="w-32">
+      {/* Progress bar + size/speed line under it */}
+      <div className="w-40 flex-shrink-0">
         <div className="h-1.5 bg-midnight-800 rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full transition-all duration-300 ${
               isComplete ? 'bg-emerald-500' :
+              isPaused ? 'bg-amber-500' :
               isError ? (isLinkExpired ? 'bg-amber-500' : 'bg-red-500') :
               status === 'cancelled' ? 'bg-midnight-600' :
               'bg-indigo-500'
@@ -82,12 +89,13 @@ export default function DownloadItem({ item, onCancel }) {
             style={{ width: `${percent}%` }}
           />
         </div>
-      </div>
-
-      {/* Speed / size / percent */}
-      <div className="text-xs text-neutral-500 w-40 text-right tabular-nums leading-4">
-        {speed ? <div className="text-indigo-400/80">{speed}</div> : null}
-        <div>{sizeText || `${Math.round(percent)}%`}</div>
+        {/* size + speed on one line, speed only while downloading */}
+        <p className="text-[10px] text-neutral-500 text-right tabular-nums mt-1 truncate">
+          {sizeText || `${Math.round(percent)}%`}
+          {isDownloading && speed && (
+            <span className="text-indigo-400/80 ml-1.5">{speed}</span>
+          )}
+        </p>
       </div>
 
       {/* Status text */}
@@ -95,21 +103,47 @@ export default function DownloadItem({ item, onCancel }) {
         {statusText}
       </span>
 
-      {/* Cancel button */}
-      {isActive ? (
-        <button
-          onClick={() => onCancel(item.id)}
-          className="text-neutral-500 hover:text-red-400 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:outline-none rounded"
-          title="Cancel"
-          aria-label={`Cancel ${songInfo.song_name || 'download'}`}
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      ) : (
-        <span className="w-4" />
-      )}
+      {/* Per-item actions: pause / resume / cancel */}
+      <div className="flex items-center gap-1 w-24 justify-end">
+        {(isActive || isPaused) && (
+          <>
+            {isActive && (
+              <button
+                onClick={() => onPause(item.id)}
+                className={ACTION_BTN}
+                title="Pause"
+                aria-label={`Pause ${songInfo.song_name || 'download'}`}
+              >
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M8 5h3v14H8zM13 5h3v14h-3z" />
+                </svg>
+              </button>
+            )}
+            {isPaused && (
+              <button
+                onClick={() => onResume(item.id)}
+                className={ACTION_BTN}
+                title="Resume"
+                aria-label={`Resume ${songInfo.song_name || 'download'}`}
+              >
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M7 4l14 8-14 8z" />
+                </svg>
+              </button>
+            )}
+            <button
+              onClick={() => onCancel(item.id)}
+              className={`${ACTION_BTN} hover:text-red-400`}
+              title="Cancel"
+              aria-label={`Cancel ${songInfo.song_name || 'download'}`}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </>
+        )}
+      </div>
     </div>
   )
 }
