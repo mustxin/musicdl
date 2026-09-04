@@ -45,7 +45,7 @@ export default function ResultCard({ songInfo, onDownload }) {
         <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
         <button
           onClick={() => onDownload(songInfo)}
-          className="absolute bottom-2 right-2 w-9 h-9 bg-indigo-600 hover:bg-indigo-500 rounded-full flex items-center justify-center shadow-lg shadow-black/40 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
+          className="absolute bottom-2 right-2 w-9 h-9 bg-indigo-600 hover:bg-indigo-500 rounded-full flex items-center justify-center shadow-lg shadow-black/40 transition-colors duration-150 cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
           title="Download"
           aria-label={`Download ${songInfo.song_name || 'track'}`}
         >

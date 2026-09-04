@@ -76,15 +76,6 @@ export default function ResultGrid() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // Back-to-top visibility on scroll
-  useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-    const handler = () => setShowBackTop(el.scrollTop > 200)
-    el.addEventListener('scroll', handler)
-    return () => el.removeEventListener('scroll', handler)
-  }, [])
-
   // Reset controls when a new search starts
   useEffect(() => {
     setSortBy('default')
@@ -118,6 +109,16 @@ export default function ResultGrid() {
     }
     return list
   }, [results, filter, sortBy, sortDir])
+
+  // Back-to-top visibility on scroll — declared after displayedResults (TDZ)
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const handler = () => setShowBackTop(el.scrollTop > 200)
+    handler()  // sync initial state in case we re-mounted mid-scroll
+    el.addEventListener('scroll', handler)
+    return () => el.removeEventListener('scroll', handler)
+  }, [status, displayedResults.length])  // re-bind when the scroll container actually renders
 
   const enabledSources = Object.entries(sources)
     .filter(([, v]) => v.enabled)
@@ -192,16 +193,16 @@ export default function ResultGrid() {
   const filterLabel = FILTER_OPTIONS.find(o => o.value === filter)?.label || 'All'
 
   return (
-    <div className="flex-1 overflow-y-auto relative pr-2.5" ref={scrollRef}>
-      {/* Header with sort / filter / download all — sticky, stays visible while scrolling */}
-      <div className="sticky top-0 z-30 -mx-2.5 px-2.5 pt-0.5 pb-3 bg-gradient-to-b from-midnight-950 via-midnight-950/95 to-transparent backdrop-blur-sm">
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-neutral-400">
-            {displayedResults.length} result{displayedResults.length !== 1 ? 's' : ''}
-            {(filter !== 'all' || sortBy !== 'default') && (
-              <span className="text-neutral-600"> · {results.length} total</span>
-            )}
-          </p>
+    <div className="flex-1 flex flex-col min-h-0 relative">
+      {/* Header with sort / filter — OUTSIDE the scroll area, so the
+          scrollbar's top aligns with the card grid, not the header */}
+      <div className="flex items-center justify-between pb-4 pr-2.5">
+        <p className="text-sm text-neutral-400">
+          {displayedResults.length} result{displayedResults.length !== 1 ? 's' : ''}
+          {(filter !== 'all' || sortBy !== 'default') && (
+            <span className="text-neutral-600"> · {results.length} total</span>
+          )}
+        </p>
 
           {results.length > 0 && (
             <div className="flex items-center gap-2">
@@ -292,25 +293,26 @@ export default function ResultGrid() {
             </button>
             </div>
           )}
+      </div>
+
+      {/* Scrollable card grid — scrollbar top aligns with the first card row */}
+      <div className="flex-1 overflow-y-auto pr-2.5" ref={scrollRef}>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pb-4">
+          {displayedResults.map((songInfo, idx) => (
+            <ResultCard
+              key={`${songInfo.song_name}-${songInfo.singers}-${idx}`}
+              songInfo={songInfo}
+              onDownload={handleDownload}
+            />
+          ))}
         </div>
       </div>
 
-      {/* Result grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {displayedResults.map((songInfo, idx) => (
-          <ResultCard
-            key={`${songInfo.song_name}-${songInfo.singers}-${idx}`}
-            songInfo={songInfo}
-            onDownload={handleDownload}
-          />
-        ))}
-      </div>
-
-      {/* Back-to-top — appears after scrolling */}
+      {/* Back-to-top — appears after scrolling; 10px gap to the scrollbar */}
       {showBackTop && (
         <button
           onClick={handleScrollBackTop}
-          className="fixed bottom-8 right-8 w-10 h-10 bg-midnight-800 border border-midnight-700 hover:border-indigo-500/50 hover:bg-midnight-700 text-neutral-400 hover:text-indigo-300 rounded-full flex items-center justify-center shadow-xl shadow-black/50 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none z-40"
+          className="absolute bottom-8 right-[22px] w-10 h-10 bg-midnight-800 border border-midnight-700 hover:border-indigo-500/50 hover:bg-midnight-700 text-neutral-400 hover:text-indigo-300 rounded-full flex items-center justify-center shadow-xl shadow-black/50 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none z-40"
           aria-label="Back to top"
           title="Back to top"
         >
