@@ -44,10 +44,6 @@ export default function SearchBar() {
     startSearch(kw)
   }
 
-  const handleFocus = () => {
-    if (!keyword.trim()) setShowHistory(true)
-  }
-
   const handleClear = () => {
     setKeyword('')
     inputRef.current?.focus()
@@ -68,6 +64,13 @@ export default function SearchBar() {
     window.addEventListener('musicdl:focus-search', handler)
     return () => window.removeEventListener('musicdl:focus-search', handler)
   }, [])
+
+  // Focusing the search box switches the app to the search page — the search
+  // bar is persistent in the header, so this is how users "go back to search".
+  const handleFocus = () => {
+    window.dispatchEvent(new Event('musicdl:goto-search'))
+    if (!keyword.trim()) setShowHistory(true)
+  }
 
   return (
     <div className="w-full" ref={containerRef}>

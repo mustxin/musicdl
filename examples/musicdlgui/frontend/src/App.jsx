@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { SearchProvider } from './contexts/SearchContext'
 import { DownloadProvider } from './contexts/DownloadContext'
 import SearchBar from './components/SearchBar'
@@ -8,6 +8,14 @@ import DownloadNavTab from './components/DownloadNavTab'
 
 function AppInner() {
   const [activePage, setActivePage] = useState('search')
+
+  // Focusing the search box switches back to the search page (the search bar
+  // is persistent in the header, so this is the natural way back from Downloads)
+  useEffect(() => {
+    const handler = () => setActivePage('search')
+    window.addEventListener('musicdl:goto-search', handler)
+    return () => window.removeEventListener('musicdl:goto-search', handler)
+  }, [])
 
   return (
     <div className="h-screen flex flex-col bg-midnight-950">
