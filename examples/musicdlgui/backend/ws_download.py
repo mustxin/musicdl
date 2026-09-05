@@ -329,8 +329,15 @@ async def ws_download(websocket: WebSocket):
                                     continue  # re-request with Range from ist["downloaded"]
                                 # stream finished normally
                                 break
-                            # verify the file actually landed with content
+                            # verify the file actually landed with content;
+                            # empty body (soft-blocked 200, dead stream) leaves
+                            # a 0-byte shell — delete it so it never lingers
                             if not os.path.isfile(si.save_path) or os.path.getsize(si.save_path) == 0:
+                                try:
+                                    if os.path.isfile(si.save_path):
+                                        os.remove(si.save_path)
+                                except OSError:
+                                    pass
                                 raise RuntimeError('download produced no file')
                             # write tags/lyrics like client.download() would
                             try:
@@ -352,6 +359,15 @@ async def ws_download(websocket: WebSocket):
                         except Exception as e:
                             code, friendly = _classify_download_error(e)
                             print(f"[ws_download] failed {si.song_name} ({code}): {e}")
+                            # a failed/cancelled download leaves a 0-byte shell
+                            # from open(path, 'wb') — remove it (only if empty;
+                            # partial data from resume is preserved by pause, but
+                            # a cancel discards the whole file)
+                            try:
+                                if os.path.isfile(si.save_path) and os.path.getsize(si.save_path) == 0:
+                                    os.remove(si.save_path)
+                            except OSError:
+                                pass
                             try:
                                 fut = asyncio.run_coroutine_threadsafe(
                                     _send_error(item_task_id, friendly, code), loop)

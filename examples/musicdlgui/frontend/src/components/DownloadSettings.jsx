@@ -102,7 +102,10 @@ export default function DownloadSettings() {
       const res = await fetch(`${API_HOST}/settings/clean-cache`, { method: 'POST' })
       const data = await res.json()
       if (data.ok) {
-        setToast(`已清理 ${data.removed} 个缓存文件，释放 ${data.freed_text}`)
+        const parts = [`已清理 ${data.removed} 个缓存/空文件`]
+        if (data.removed_dirs > 0) parts.push(`${data.removed_dirs} 个空目录`)
+        if (data.freed_bytes > 0) parts.push(`释放 ${data.freed_text}`)
+        setToast(parts.join('，'))
       } else {
         setToast('清理失败')
       }
@@ -178,7 +181,7 @@ export default function DownloadSettings() {
           {/* cache cleanup */}
           <p className="text-xs font-semibold text-neutral-300 uppercase tracking-wider">缓存清理</p>
           <p className="text-xs text-neutral-500 mt-1.5 leading-5">
-            清除下载目录下的 search_results.pkl / download_results.pkl 等缓存文件，不影响音频文件。
+            清除下载目录下的 .pkl 缓存、0 字节残留音频文件及空目录，不影响正常音频文件。
           </p>
           <button
             onClick={cleanCache}

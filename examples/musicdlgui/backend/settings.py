@@ -14,6 +14,11 @@ DEFAULT_DOWNLOAD_DIR = os.path.join(_PROJECT_ROOT, "musicdl_outputs")
 # Files considered cache/junk inside the download directory
 _CACHE_SUFFIXES = (".pkl",)  # search_results.pkl / download_results.pkl
 _CACHE_NAMES = {".search_history.json"}  # (defensive; normally not under download dir)
+# NOTE on 0-byte audio shells: open(path,'wb') creates the file before the
+# first chunk arrives; a pause/cancel/error in that window (or an empty-body
+# 200 response) leaves it at 0 bytes. clean_cache deletes ANY 0-byte file,
+# which covers audio shells and stray temp writes alike. Empty dirs are the
+# leftovers of source-client dirs whose every file was removed.
 
 
 def _read_settings() -> dict:
@@ -56,24 +61,45 @@ def reset_download_dir() -> str:
 
 
 def clean_cache() -> dict:
-    """Remove cache files (.pkl) under the download dir. Returns stats.
+    """Remove junk under the download dir. Returns stats.
 
-    Walks each source subdirectory but stays inside the download root.
-    Never touches audio files or .lrc lyrics.
+    Targets:
+    - .pkl cache files (search/download result dumps)
+    - 0-byte audio files (empty shells from interrupted downloads — see
+      the comment on _AUDIO_SUFFIXES for how they arise)
+    - 0-byte unknown files (stray temp writes)
+    - empty directories left after the above removals (bottom-up)
+    Never touches non-empty audio files or .lrc lyrics.
     """
     root = get_download_dir()
     removed, freed_bytes = 0, 0
-    for dirpath, _dirnames, filenames in os.walk(root):
+    empty_dirs = []
+    for dirpath, dirnames, filenames in os.walk(root, topdown=False):
         for fn in filenames:
             fp = os.path.join(dirpath, fn)
-            if os.path.splitext(fn)[1].lower() in _CACHE_SUFFIXES or fn in _CACHE_NAMES:
+            ext = os.path.splitext(fn)[1].lower()
+            try:
+                size = os.path.getsize(fp)
+            except OSError:
+                continue
+            is_cache = ext in _CACHE_SUFFIXES or fn in _CACHE_NAMES
+            # 0-byte junk: audio shells and any other empty file
+            is_zero_shell = size == 0
+            if is_cache or is_zero_shell:
                 try:
-                    freed_bytes += os.path.getsize(fp)
                     os.remove(fp)
                     removed += 1
+                    freed_bytes += size  # 0 for shells; count anyway for uniformity
                 except OSError:
                     pass
-    return {"removed": removed, "freed_bytes": freed_bytes}
+        # after removing files (walk is bottom-up), drop dirs that are now empty
+        try:
+            if not os.listdir(dirpath) and os.path.abspath(dirpath) != os.path.abspath(root):
+                os.rmdir(dirpath)
+                empty_dirs.append(dirpath)
+        except OSError:
+            pass
+    return {"removed": removed, "freed_bytes": freed_bytes, "removed_dirs": len(empty_dirs)}
 
 
 def format_bytes(n: int) -> str:

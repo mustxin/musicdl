@@ -98,13 +98,14 @@ async def reset_setting_download_dir():
 
 @app.post("/settings/clean-cache")
 async def clean_download_cache():
-    """Remove .pkl cache files under the download directory."""
+    """Remove .pkl cache files, 0-byte shells, and empty dirs under the download directory."""
     stats = clean_cache()
     return {
         "ok": True,
         "removed": stats["removed"],
         "freed_bytes": stats["freed_bytes"],
         "freed_text": format_bytes(stats["freed_bytes"]),
+        "removed_dirs": stats.get("removed_dirs", 0),
     }
 
 
