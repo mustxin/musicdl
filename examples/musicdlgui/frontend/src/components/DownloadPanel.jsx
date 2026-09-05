@@ -2,7 +2,7 @@ import { useDownloadContext } from '../contexts/DownloadContext'
 import DownloadItem from './DownloadItem'
 import DownloadSettings from './DownloadSettings'
 
-const BATCH_BTN = 'flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none border'
+const HEADER_BTN = 'flex items-center gap-1.5 h-8 px-3 rounded-full text-xs text-neutral-400 hover:text-neutral-100 bg-midnight-800/80 hover:bg-midnight-800 border border-transparent hover:border-midnight-700 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none'
 
 export default function DownloadPanel({ onGoSearch }) {
   const {
@@ -46,7 +46,7 @@ export default function DownloadPanel({ onGoSearch }) {
               {hasActive && (
                 <button
                   onClick={pauseAll}
-                  className={`${BATCH_BTN} bg-midnight-800/80 hover:bg-midnight-800 text-neutral-400 hover:text-neutral-100 border-transparent hover:border-midnight-700`}
+                  className={`${HEADER_BTN} bg-midnight-800/80 hover:bg-midnight-800 text-neutral-400 hover:text-neutral-100 border-transparent hover:border-midnight-700`}
                   aria-label="Pause all active downloads"
                   title="Pause all"
                 >
@@ -59,7 +59,7 @@ export default function DownloadPanel({ onGoSearch }) {
               {hasPaused && (
                 <button
                   onClick={resumeAll}
-                  className={`${BATCH_BTN} bg-midnight-800/80 hover:bg-midnight-800 text-neutral-400 hover:text-neutral-100 border-transparent hover:border-midnight-700`}
+                  className={`${HEADER_BTN} bg-midnight-800/80 hover:bg-midnight-800 text-neutral-400 hover:text-neutral-100 border-transparent hover:border-midnight-700`}
                   aria-label="Resume all paused downloads"
                   title="Resume all"
                 >
@@ -71,7 +71,7 @@ export default function DownloadPanel({ onGoSearch }) {
               )}
               <button
                 onClick={cancelAll}
-                className={`${BATCH_BTN} bg-midnight-800/80 hover:bg-red-500/10 text-neutral-400 hover:text-red-300 border-transparent hover:border-red-500/30`}
+                className={`${HEADER_BTN} bg-midnight-800/80 hover:bg-red-500/10 text-neutral-400 hover:text-red-300 border-transparent hover:border-red-500/30`}
                 aria-label="Cancel all active downloads"
                 title="Cancel all"
               >
@@ -85,7 +85,9 @@ export default function DownloadPanel({ onGoSearch }) {
           <DownloadSettings />
           <button
             onClick={openDownloadsFolder}
-            className="text-xs text-neutral-500 hover:text-indigo-400 transition-colors flex items-center gap-1 cursor-pointer"
+            className={HEADER_BTN}
+            aria-label="Open downloads folder"
+            title="Open folder"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
@@ -95,8 +97,13 @@ export default function DownloadPanel({ onGoSearch }) {
           {hasCompleted && (
             <button
               onClick={clearCompleted}
-              className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors cursor-pointer"
+              className={HEADER_BTN}
+              aria-label="Clear completed downloads from the list"
+              title="Clear completed"
             >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-9V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
               Clear completed
             </button>
           )}
