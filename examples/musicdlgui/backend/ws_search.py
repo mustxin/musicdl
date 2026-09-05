@@ -9,16 +9,13 @@ from concurrent.futures import ThreadPoolExecutor
 from fastapi import WebSocket
 from musicdl import musicdl
 from history import save_search_history
+from settings import get_search_cache_dir
 
 
 DEFAULT_SOURCES = [
     "MiguMusicClient", "NeteaseMusicClient", "QQMusicClient",
     "KuwoMusicClient", "QianqianMusicClient",
 ]
-
-# Project root is 3 levels up from this file: backend/ -> musicdlgui/ -> examples/ -> repo root
-_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-_DOWNLOAD_DIR = os.path.join(_PROJECT_ROOT, "musicdl_outputs")
 
 _search_executor = ThreadPoolExecutor(max_workers=4)
 
@@ -56,7 +53,7 @@ async def ws_search(websocket: WebSocket):
         try:
             client = musicdl.MusicClient(
                 music_sources=[source],
-                init_music_clients_cfg={source: {"work_dir": _DOWNLOAD_DIR}},
+                init_music_clients_cfg={source: {"work_dir": get_search_cache_dir()}},
             )
             search_results = await loop.run_in_executor(
                 _search_executor, lambda s=source, c=client: c.search(keyword=keyword)

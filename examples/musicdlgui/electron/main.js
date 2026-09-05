@@ -13,10 +13,22 @@ function startBackend() {
   const pythonCmd = process.platform === 'win32' ? 'python' : 'python3'
 
   const backendDir = path.join(__dirname, '..', 'backend')
+  // Build the child env in ONE place: strip ELECTRON_RUN_AS_NODE (VS Code
+  // terminals inject it, which would force the Python-spawned electron —
+  // and any nested electron tools — into plain-Node mode), then add ours.
+  const env = {}
+  for (const [k, v] of Object.entries(process.env)) {
+    if (k.toUpperCase() !== 'ELECTRON_RUN_AS_NODE') env[k] = v
+  }
+  env.PYTHONUNBUFFERED = '1'
+  // Packaged apps must not write cache into resources/ — use userData instead
+  if (app.isPackaged) {
+    env.MUSICDLGUI_CACHE_DIR = path.join(app.getPath('userData'), 'cache')
+  }
   backendProcess = spawn(pythonCmd, ['server.py'], {
     cwd: backendDir,
     stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env, PYTHONUNBUFFERED: '1' },
+    env,
   })
 
   backendProcess.stdout.on('data', (data) => {
@@ -78,14 +90,18 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
-  startBackend()
   try {
+    startBackend()
     await waitForBackend()
     console.log('[electron] Backend is ready')
   } catch (err) {
-    console.error('[electron] Failed to start backend:', err.message)
+    console.error('[electron] Startup error:', err.message)
   }
-  createWindow()
+  try {
+    createWindow()
+  } catch (err) {
+    console.error('[electron] Failed to create window:', err.message)
+  }
 })
 
 app.on('window-all-closed', () => {

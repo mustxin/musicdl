@@ -12,7 +12,7 @@ from ws_search import ws_search as _ws_search_handler
 from ws_download import ws_download as _ws_download_handler
 from history import read_history, write_history
 from settings import (
-    get_download_dir, set_download_dir, reset_download_dir,
+    get_download_dir, get_default_download_dir, set_download_dir, reset_download_dir,
     clean_cache, format_bytes,
 )
 
@@ -25,10 +25,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Project root is 3 levels up from this file: backend/ -> musicdlgui/ -> examples/ -> repo root
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-DOWNLOAD_DIR = os.path.join(PROJECT_ROOT, "musicdl_outputs")
 
 
 @app.get("/health")
@@ -75,7 +71,7 @@ async def downloads_open():
 
 @app.get("/settings/download-dir")
 async def get_setting_download_dir():
-    return {"path": get_download_dir(), "is_default": get_download_dir() == DOWNLOAD_DIR}
+    return {"path": get_download_dir(), "is_default": get_download_dir() == get_default_download_dir()}
 
 
 @app.put("/settings/download-dir")

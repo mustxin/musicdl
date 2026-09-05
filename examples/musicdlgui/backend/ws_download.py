@@ -17,11 +17,6 @@ from musicdl import musicdl
 from musicdl.modules import SongInfo, SongInfoUtils
 from settings import get_download_dir
 
-
-# Project root is 3 levels up from this file: backend/ -> musicdlgui/ -> examples/ -> repo root
-_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-_DOWNLOAD_DIR = os.path.join(_PROJECT_ROOT, "musicdl_outputs")
-
 _download_executor = ThreadPoolExecutor(max_workers=10)
 # Per-BATCH control state: { task_id: {"cancelled": bool, "paused": bool,
 # "remaining": int, "items": {global_idx: {"paused": bool, "cancelled": bool,
@@ -40,11 +35,15 @@ def _item_state(task_id: str, idx: int) -> dict | None:
 
 
 def _build_song_info(data: dict, work_dir: str) -> SongInfo:
-    """Reconstruct a SongInfo from the JSON-safe dict sent by the frontend."""
+    """Reconstruct a SongInfo from the JSON-safe dict sent by the frontend.
+
+    work_dir comes from the CALLER (resolved at request time from current
+    settings); the 'work_dir' field inside the search-result payload is a
+    stale snapshot and is deliberately ignored.
+    """
     song_name = data.get("song_name", "")
     singers = data.get("singers", "")
     source = data.get("source", "")
-    wd = data.get("work_dir", "") or work_dir
     identifier = singers or source
     return SongInfo(
         source=source,
@@ -60,7 +59,7 @@ def _build_song_info(data: dict, work_dir: str) -> SongInfo:
         duration_s=data.get("duration_s", 0),
         raw_data=data.get("raw_data", {}),
         download_url_status={"ok": True},
-        work_dir=wd,
+        work_dir=work_dir,
         identifier=identifier,
     )
 
@@ -182,12 +181,18 @@ async def ws_download(websocket: WebSocket):
                 for i, s in enumerate(song_infos_data):
                     await send_progress(f"{task_id}-{i}", s.get("song_name") or "unknown", 0)
 
-                # Build SongInfo objects (work_dir from search results,
-                # falling back to the CURRENT custom download dir)
+                # Build SongInfo objects — the download dir is resolved at
+                # REQUEST time from the current settings (custom dir wins).
+                # The work_dir embedded in search results is a stale snapshot
+                # from search time and must NOT decide where files land.
+                # Layout mirrors musicdl CLI: {dir}/{source}/{timestamp keyword}/
+                current_dir = get_download_dir()
+                timestamp = time.strftime("%Y-%m-%d-%H-%M-%S")
+                keyword = (msg.get("keyword") or "download").strip() or "download"
                 global_infos = []
                 for s in song_infos_data:
                     source = s.get("source", "")
-                    wd = s.get("work_dir", "") or os.path.join(get_download_dir(), source)
+                    wd = os.path.join(current_dir, source, f"{timestamp} {keyword}")
                     os.makedirs(wd, exist_ok=True)
                     global_infos.append(_build_song_info(s, wd))
 

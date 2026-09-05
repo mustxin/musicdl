@@ -2,19 +2,10 @@
 import os
 import json
 
-# Backend dir is this file's directory; project root is 3 levels up
+# Backend dir is this file's directory — fully location-agnostic
 _BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
-_PROJECT_ROOT = os.path.abspath(os.path.join(_BACKEND_DIR, "..", "..", ".."))
 HISTORY_FILE = os.path.join(_BACKEND_DIR, ".search_history.json")
-# Old location (musicdl_outputs/) — migrate once if found
-_OLD_HISTORY_FILE = os.path.join(_PROJECT_ROOT, "musicdl_outputs", ".search_history.json")
 MAX_HISTORY = 20
-
-if os.path.exists(_OLD_HISTORY_FILE) and not os.path.exists(HISTORY_FILE):
-    try:
-        os.replace(_OLD_HISTORY_FILE, HISTORY_FILE)
-    except OSError:
-        pass
 
 
 def read_history() -> list:
