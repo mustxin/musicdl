@@ -1,5 +1,6 @@
 import { useDownloadContext } from '../contexts/DownloadContext'
 import DownloadItem from './DownloadItem'
+import DownloadSettings from './DownloadSettings'
 
 const BATCH_BTN = 'flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none border'
 
@@ -81,6 +82,7 @@ export default function DownloadPanel({ onGoSearch }) {
               </button>
             </div>
           )}
+          <DownloadSettings />
           <button
             onClick={openDownloadsFolder}
             className="text-xs text-neutral-500 hover:text-indigo-400 transition-colors flex items-center gap-1 cursor-pointer"

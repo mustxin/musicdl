@@ -15,6 +15,7 @@ from concurrent.futures import ThreadPoolExecutor
 from fastapi import WebSocket
 from musicdl import musicdl
 from musicdl.modules import SongInfo, SongInfoUtils
+from settings import get_download_dir
 
 
 # Project root is 3 levels up from this file: backend/ -> musicdlgui/ -> examples/ -> repo root
@@ -181,11 +182,12 @@ async def ws_download(websocket: WebSocket):
                 for i, s in enumerate(song_infos_data):
                     await send_progress(f"{task_id}-{i}", s.get("song_name") or "unknown", 0)
 
-                # Build SongInfo objects (work_dir from search results)
+                # Build SongInfo objects (work_dir from search results,
+                # falling back to the CURRENT custom download dir)
                 global_infos = []
                 for s in song_infos_data:
                     source = s.get("source", "")
-                    wd = s.get("work_dir", "") or os.path.join(_DOWNLOAD_DIR, source)
+                    wd = s.get("work_dir", "") or os.path.join(get_download_dir(), source)
                     os.makedirs(wd, exist_ok=True)
                     global_infos.append(_build_song_info(s, wd))
 

@@ -135,10 +135,9 @@ export default function SearchBar() {
             placeholder="Search songs, artists, albums..."
             aria-label="Search keywords"
             className={`w-full h-12 pl-11 ${keyword ? 'pr-11' : 'pr-5'} bg-midnight-800/80 hover:bg-midnight-800 border border-transparent hover:border-midnight-700 focus:border-midnight-600 rounded-full text-sm text-neutral-100 placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all duration-200`}
-            disabled={isSearching}
           />
-          {/* Clear button */}
-          {keyword && !isSearching && (
+          {/* Clear button — clickable anytime there's content (even mid-search) */}
+          {keyword && (
             <button
               onClick={handleClear}
               className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full text-neutral-500 hover:text-neutral-100 hover:bg-midnight-700 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
