@@ -108,10 +108,4 @@ node_modules/
 
 musicdl_outputs/
 
-# GUI runtime state
-examples/musicdlgui/backend/.search_history.json
-examples/musicdlgui/backend/.gui_settings.json
-examples/musicdlgui/backend/.cache/
-examples/musicdlgui/dist-electron/
-examples/musicdlgui/frontend/.vite/
 .claude/
